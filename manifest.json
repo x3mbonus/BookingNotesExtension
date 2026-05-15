@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Car Notes",
+  "version": "1.0.0",
+  "description": "Add colored notes to car listings on mobile.de and otomoto.pl",
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "permissions": ["storage", "scripting"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
+  },
+  "host_permissions": [
+    "https://mobile.de/*",
+    "https://www.mobile.de/*",
+    "https://otomoto.pl/*",
+    "https://www.otomoto.pl/*",
+    "https://*.mobile.de/*",
+    "https://*.otomoto.pl/*",
+    "https://cdn.jsdelivr.net/*",
+    "https://*.supabase.co/*"
+  ],
+  "options_page": "src/popup/options.html",
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Car Notes"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mobile.de/*",
+        "https://www.mobile.de/*",
+        "https://otomoto.pl/*",
+        "https://www.otomoto.pl/*",
+        "https://*.mobile.de/*",
+        "https://*.otomoto.pl/*"
+      ],
+      "js": ["src/content/utils/utils.js", "src/content/utils/note-callbacks.js", "src/content/services/utils/metadata-parser.js", "src/content/components/common/ui-components.js", "src/content/components/common/notes-editor.js", "src/content/components/compare/compare-table.js", "src/content/components/compare/compare-panel.js", "src/content/services/parsers/vehicle-extractor-simple.js", "src/content/services/parsers/features-parser.js", "src/content/persistence/supabase-client.js", "src/content/services/features-manager.js", "src/content/components/unified-panel/unified-panel.js", "src/content/components/common/extraction-ui.js", "src/content/entry/router.js", "src/content/entry/handlers.js", "src/content/services/parsers/mobilede/mobile-de.js", "src/content/services/parsers/otomoto/otomoto.js", "src/content/entry/content.js"],
+      "css": ["src/styles/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
+
+

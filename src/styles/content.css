@@ -1,0 +1,720 @@
+/* Shared UI Components */
+
+.ui-section-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.ui-color-btn {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.ui-color-btn:hover {
+    border-color: #333;
+    transform: scale(1.1);
+}
+
+.ui-color-btn.selected {
+    border: 3px solid #333;
+    box-shadow: inset 0 0 0 1px #666;
+}
+
+.ui-note-textarea {
+    width: 100%;
+    height: 150px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.ui-note-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ui-rating-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #388E3C;
+    border-radius: 4px;
+    background: #E8F5E9;
+    color: #1b5e20;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.ui-rating-select:focus {
+    outline: none;
+    border-color: #388E3C;
+    box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.1);
+}
+
+.ui-verification-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #FF9800;
+    border-radius: 4px;
+    background: #FFF3E0;
+    color: #E65100;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ui-verification-btn[data-verified="true"] {
+    border-color: #388E3C;
+    background: #E8F5E9;
+    color: #1b5e20;
+}
+
+.ui-verification-btn:hover {
+    transform: translateY(-2px);
+}
+
+.ui-features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.ui-feature-btn {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #666;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ui-feature-btn:hover {
+    border-color: #667eea;
+    background: #f0f0ff;
+}
+
+.ui-feature-btn.active {
+    border-color: #388E3C;
+    background: #E8F5E9;
+    color: #1b5e20;
+    font-weight: 600;
+}
+
+/* Cool features when present — medium green, clearly above regular active */
+.ui-feature-btn.cool-present {
+    border-color: #388E3C;
+    background: #A5D6A7;
+    color: #1B5E20;
+    font-weight: 700;
+}
+
+.ui-feature-btn.cool-present:hover {
+    background: #81C784;
+    border-color: #2E7D32;
+}
+
+.ui-feature-btn.missing {
+    border-color: #F44336;
+    background: #FFEBEE;
+    color: #C62828;
+    font-weight: 600;
+}
+
+/* High priority features when not true (priority-missing) - show RED */
+.ui-feature-btn.priority-missing {
+    border-color: #F44336;
+    background: #FFCDD2;
+    color: #C62828;
+    font-weight: 600;
+}
+
+/* Medium priority features when missing - show YELLOW */
+.ui-feature-btn.priority-medium-missing {
+    border-color: #FBC02D;
+    background: #FFF9C4;
+    color: #F57F17;
+    font-weight: 600;
+}
+
+/* Medium priority features when unknown - show WHITE */
+.ui-feature-btn.priority-medium-unknown {
+    border-color: #ddd;
+    background: #f5f5f5;
+    color: #666;
+}
+
+/* Low priority features when missing - show WHITE */
+.ui-feature-btn.priority-low-missing {
+    border-color: #ddd;
+    background: #f5f5f5;
+    color: #666;
+}
+
+/* Metadata section styles */
+.ui-metadata-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 4px;
+    background: #fafafa;
+    border-radius: 4px;
+    border: 1px solid #e8e8e8;
+}
+
+.ui-metadata-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.ui-metadata-label {
+    font-size: 8px;
+    font-weight: 700;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.ui-metadata-select {
+    padding: 4px 5px;
+    border: 2px solid #ddd;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: inherit;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.ui-metadata-select:hover {
+    border-color: #667eea;
+}
+
+.ui-metadata-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.ui-metadata-select option {
+    padding: 4px 6px;
+    font-size: 11px;
+    background: white;
+    color: #333;
+}
+
+/* Car Notes Display Styles */
+
+.car-note-display {
+    margin: 12px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e0e0e0;
+    position: relative;
+}
+
+/* Hide border and padding when content has no background */
+.car-note-display:has(.no-background) {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Detail page note display - fixed positioning */
+.car-note-display-detail {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 300px;
+}
+
+.car-note-content {
+    padding: 12px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: noteAppear 0.3s ease;
+}
+
+/* Hide background when text is empty */
+.car-note-content:has(.car-note-text:empty) {
+    background-color: transparent !important;
+    box-shadow: none;
+    padding: 0;
+    display: inline-flex;
+}
+
+.car-note-content:has(.car-note-text:empty) .car-note-text {
+    display: none;
+}
+
+/* Hide background when no rating and no text */
+.car-note-content.no-background {
+    background-color: transparent !important;
+    box-shadow: none;
+    padding: 0;
+    display: inline-flex;
+}
+
+.car-note-content.no-background .car-note-text {
+    display: none;
+}
+
+.car-note-content.empty-text .car-note-text {
+    display: none;
+}
+
+.car-note-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.car-note-edit-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    opacity: 0.7;
+}
+
+.car-note-edit-btn:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.car-note-add-btn {
+    background: rgba(255, 255, 255, 0.3);
+    border: 2px dashed rgba(0, 0, 0, 0.3);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    opacity: 0.6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.car-note-add-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
+}
+
+/* Modal Styles */
+
+.car-note-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+.car-note-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.car-note-modal-header {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+}
+
+.car-note-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.car-note-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.car-note-modal-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.car-note-modal-content {
+    padding: 16px;
+    max-height: calc(80vh - 140px);
+    overflow-y: auto;
+}
+
+.car-note-modal-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.car-note-modal-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.car-note-modal-colors {
+    margin-bottom: 16px;
+}
+
+.car-note-modal-colors label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.car-note-color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+    gap: 8px;
+}
+
+.car-note-color-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.car-note-color-btn:hover {
+    border-color: #333;
+    transform: scale(1.1);
+}
+
+.car-note-color-btn.selected {
+    border-color: #333;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+}
+
+.car-note-modal-actions {
+    padding: 16px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #f9f9f9;
+}
+
+.car-note-modal-delete-btn {
+    background: #F44336;
+    color: white;
+    border: none;
+    padding: 4px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin-left: auto;
+    padding: 2px;
+}
+
+.car-note-modal-delete-btn.visible {
+    visibility: visible;
+    opacity: 0.5;
+    max-height: 28px;
+    padding: 2px;
+}
+
+.car-note-modal-delete-btn:hover {
+    background: #d32f2f;
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+.car-note-modal-cancel-btn,
+.car-note-modal-save-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    background: white;
+}
+
+.car-note-modal-cancel-btn:hover {
+    background: #f5f5f5;
+}
+
+.car-note-modal-save-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+.car-note-modal-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Modal Sections */
+.modal-section {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-section label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.modal-color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.modal-color-btn {
+    width: 28px;
+    height: 28px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.modal-color-btn:hover {
+    border-color: #333;
+    transform: scale(1.1);
+}
+
+.modal-color-btn.selected {
+    border-color: #333;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+}
+
+.modal-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    box-sizing: border-box;
+}
+
+.modal-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-rating-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #388E3C;
+    border-radius: 4px;
+    background: #E8F5E9;
+    color: #1b5e20;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.modal-rating-select:focus {
+    outline: none;
+    border-color: #388E3C;
+    box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.1);
+}
+
+.modal-verification-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #FF9800;
+    border-radius: 4px;
+    background: #FFF3E0;
+    color: #E65100;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-verification-btn[data-verified="true"] {
+    border-color: #388E3C;
+    background: #E8F5E9;
+    color: #1b5e20;
+}
+
+.modal-verification-btn:hover {
+    transform: translateY(-2px);
+}
+
+.modal-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.modal-feature-btn {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #666;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-feature-btn:hover {
+    border-color: #667eea;
+    background: #f0f0ff;
+}
+
+.modal-feature-btn.active {
+    border-color: #388E3C;
+    background: #E8F5E9;
+    color: #1b5e20;
+    font-weight: 600;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@keyframes noteAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
