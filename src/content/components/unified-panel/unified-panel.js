@@ -4,21 +4,19 @@ window.CarDetailPanel = {
     currentCarId: null,
     currentFeatures: null,
     isVerified: false,
-    isSold: false,
-    currentSort: -1,  // -1 = excluded, 0-3 = sort levels
+    isUnavailable: false,
+    currentSort: -1,
     currentNote: '',
-    currentColor: '#e0e0e0',  // Default to gray (no rating) for new notes
-    // Metadata fields
-    currentMake: '',
-    currentModel: '',
-    currentPrice: '',
-    currentPriceEur: '',
-    currentMileage: '',
-    currentYear: '',
-    currentSeatType: '',
-    currentClimate: '',
-    currentOwners: '',
-    currentTowHitchType: '',
+    currentColor: '#e0e0e0',
+    // Accommodation metadata fields
+    currentName: '',
+    currentPricePerNight: '',
+    currentLocation: '',
+    currentSiteRating: '',
+    currentBedrooms: '',
+    currentBeds: '',
+    currentDistanceBeach: '',
+    currentDistanceAirport: '',
     panelElement: null,
     isExpanded: true,
     isInitializing: false,  // Prevent duplicate initialization
@@ -28,11 +26,11 @@ window.CarDetailPanel = {
      * Show unified panel with all car data
      */
     async showPanel(carId, data) {
-        console.log('[CAR-NOTES] showPanel called with carId:', carId);
+        console.log('[STAY-NOTES] showPanel called with carId:', carId);
 
         // Prevent duplicate initialization of same car
         if (this.currentCarId === carId && this.panelElement) {
-            console.log('[CAR-NOTES] Panel already shown for this car, skipping duplicate initialization');
+            console.log('[STAY-NOTES] Panel already shown for this car, skipping duplicate initialization');
             // Make sure wrapper is visible
             if (this.wrapperElement) {
                 this.wrapperElement.style.display = '';
@@ -47,7 +45,7 @@ window.CarDetailPanel = {
 
         // Prevent concurrent initialization
         if (this.isInitializing) {
-            console.log('[CAR-NOTES] Panel initialization already in progress, skipping duplicate call');
+            console.log('[STAY-NOTES] Panel initialization already in progress, skipping duplicate call');
             return;
         }
 
@@ -57,26 +55,26 @@ window.CarDetailPanel = {
 
         if (!this.panelElement) {
             this.createPanel();
-            console.log('[CAR-NOTES] Panel created');
+            console.log('[STAY-NOTES] Panel created');
         }
 
         // Load or initialize features
-        console.log('[CAR-NOTES] FeaturesManager exists?', !!window.FeaturesManager);
+        console.log('[STAY-NOTES] FeaturesManager exists?', !!window.FeaturesManager);
         try {
-            console.log('[CAR-NOTES] Calling initializeFeatures...');
+            console.log('[STAY-NOTES] Calling initializeFeatures...');
             const featureState = await window.FeaturesManager?.initializeFeatures?.(carId, data);
-            console.log('[CAR-NOTES] initializeFeatures returned:', featureState);
+            console.log('[STAY-NOTES] initializeFeatures returned:', featureState);
             this.currentFeatures = featureState?.features || {};
-            console.log('[CAR-NOTES] currentFeatures set to:', this.currentFeatures);
+            console.log('[STAY-NOTES] currentFeatures set to:', this.currentFeatures);
             this.isVerified = featureState?.confirmed || false;
-            this.currentSort = featureState?.sort ?? null;  // null = no rating, not -1
+            this.currentSort = featureState?.sort ?? null;
 
             // If features were not loaded from DB, save them automatically on first visit
             if (!featureState?.isFromDb) {
-                console.log('[CAR-NOTES] Auto-saving features on first visit (source:', featureState?.featuresSource, ', count:', Object.keys(this.currentFeatures).length, ')');
-                console.log('[CAR-NOTES] Features to save:', this.currentFeatures);
+                console.log('[STAY-NOTES] Auto-saving features on first visit (source:', featureState?.featuresSource, ', count:', Object.keys(this.currentFeatures).length, ')');
+                console.log('[STAY-NOTES] Features to save:', this.currentFeatures);
                 await window.FeaturesManager?.confirmAllFeatures?.(carId, this.currentFeatures, this.currentSort, false);
-                console.log('[CAR-NOTES] Features auto-saved to DB');
+                console.log('[STAY-NOTES] Features auto-saved to DB');
             }
 
             console.log('✅ Features loaded:', Object.keys(this.currentFeatures).length, 'features');
@@ -86,38 +84,27 @@ window.CarDetailPanel = {
         }
 
         // Load note metadata (WITHOUT re-fetching features - we already have them from initializeFeatures)
-        console.log('[CAR-NOTES] Calling getCarDataMetadata via FeaturesManager...');
+        console.log('[STAY-NOTES] Calling getPropertyDataMetadata via FeaturesManager...');
         try {
-            const noteDataPromise = window.FeaturesManager?.getCarDataMetdata?.(carId);
+            const noteDataPromise = window.FeaturesManager?.getPropertyDataMetadata?.(carId);
             const timeoutPromise = new Promise((resolve) =>
-                setTimeout(() => resolve(null), 2000) // 2 second timeout
+                setTimeout(() => resolve(null), 2000)
             );
             const noteData = noteDataPromise ? await Promise.race([noteDataPromise, timeoutPromise]) : null;
-            console.log('[CAR-NOTES] getCarDataMetadata returned:', noteData);
+            console.log('[STAY-NOTES] getPropertyDataMetadata returned:', noteData);
             if (noteData) {
                 this.currentNote = noteData.text || '';
                 this.currentColor = noteData.color || '#e0e0e0';
-                this.isSold = noteData.sold || false;
-                // Load metadata from note data
-                this.currentMake = noteData.make || '';
-                this.currentModel = noteData.model || '';
-                this.currentPrice = noteData.price || '';
-                this.currentPriceEur = noteData.price_eur || '';
-                this.currentMileage = noteData.mileage || '';
-                this.currentYear = noteData.year || '';
-                this.currentSeatType = noteData.seat_type || '';
-                this.currentClimate = noteData.climate || '';
-                this.currentOwners = noteData.owners || '';
-                this.currentTowHitchType = noteData.tow_hitch_type || '';
-                console.log('✅ Note metadata loaded:', {
-                    make: this.currentMake,
-                    model: this.currentModel,
-                    price: this.currentPrice,
-                    seat_type: this.currentSeatType,
-                    climate: this.currentClimate,
-                    owners: this.currentOwners,
-                    tow_hitch_type: this.currentTowHitchType
-                });
+                this.isUnavailable = noteData.unavailable || false;
+                this.currentName = noteData.name || '';
+                this.currentPricePerNight = noteData.price_per_night || '';
+                this.currentLocation = noteData.location || '';
+                this.currentSiteRating = noteData.site_rating || '';
+                this.currentBedrooms = noteData.bedrooms || '';
+                this.currentBeds = noteData.beds || '';
+                this.currentDistanceBeach = noteData.distance_beach || '';
+                this.currentDistanceAirport = noteData.distance_airport || '';
+                console.log('✅ Property metadata loaded');
             }
         } catch (error) {
             console.error('❌ Error loading note metadata:', error);
@@ -185,7 +172,7 @@ window.CarDetailPanel = {
             font-weight: bold;
             flex: 1;
         `;
-        title.textContent = '📋 Car Details';
+        title.textContent = '🏨 Property Details';
         header.appendChild(title);
 
         // Refresh button
@@ -211,26 +198,29 @@ window.CarDetailPanel = {
         refreshBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[CAR-NOTES] Refreshing data from database...');
+            console.log('[STAY-NOTES] Refreshing data from database...');
             try {
-                // Reload all car data including features and confirmed status
-                const carData = await window.SupabaseApi?.getCarData?.(this.currentCarId);
+                const carData = await window.SupabaseApi?.getPropertyData?.(this.currentCarId);
                 if (carData) {
                     this.currentFeatures = carData.features || {};
                     this.isVerified = carData.confirmed || false;
-                    this.isSold = carData.sold || false;
+                    this.isUnavailable = carData.unavailable || false;
                     this.currentSort = carData.sort ?? null;
                     this.currentNote = carData.text || '';
                     this.currentColor = carData.color || '#e0e0e0';
-                    this.currentSeatType = carData.seat_type || '';
-                    this.currentClimate = carData.climate || '';
-                    this.currentOwners = carData.owners || '';
-                    this.currentTowHitchType = carData.tow_hitch_type || '';
-                    console.log('[CAR-NOTES] Data refreshed: features=', Object.keys(this.currentFeatures).length, 'confirmed=', this.isVerified);
+                    this.currentName = carData.name || '';
+                    this.currentPricePerNight = carData.price_per_night || '';
+                    this.currentLocation = carData.location || '';
+                    this.currentSiteRating = carData.site_rating || '';
+                    this.currentBedrooms = carData.bedrooms || '';
+                    this.currentBeds = carData.beds || '';
+                    this.currentDistanceBeach = carData.distance_beach || '';
+                    this.currentDistanceAirport = carData.distance_airport || '';
+                    console.log('[STAY-NOTES] Data refreshed');
                     await this.updatePanelContent();
                 }
             } catch (error) {
-                console.error('[CAR-NOTES] Error refreshing data:', error);
+                console.error('[STAY-NOTES] Error refreshing data:', error);
             }
         });
         header.appendChild(refreshBtn);
@@ -239,7 +229,7 @@ window.CarDetailPanel = {
         const compareBtn = document.createElement('button');
         compareBtn.id = 'unified-panel-compare';
         compareBtn.textContent = '📊';
-        compareBtn.title = 'Compare with other cars';
+        compareBtn.title = 'Compare with other properties';
         compareBtn.style.cssText = `
             background: rgba(255,255,255,0.2);
             border: none;
@@ -258,12 +248,12 @@ window.CarDetailPanel = {
         compareBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[CAR-NOTES] Opening compare modal');
+            console.log('[STAY-NOTES] Opening compare modal');
             try {
                 // Pass current car ID and sort for smart filtering
                 await window.ComparePanel?.showCompareModal?.(this.currentSort, this.currentCarId);
             } catch (error) {
-                console.error('[CAR-NOTES] Error opening compare modal:', error);
+                console.error('[STAY-NOTES] Error opening compare modal:', error);
             }
         });
         header.appendChild(compareBtn);
@@ -290,7 +280,7 @@ window.CarDetailPanel = {
         collapseBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[CAR-NOTES] Collapse button clicked');
+            console.log('[STAY-NOTES] Collapse button clicked');
             this.togglePanel();
         });
         header.appendChild(collapseBtn);
@@ -323,7 +313,7 @@ window.CarDetailPanel = {
         expandBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[CAR-NOTES] Expand button clicked');
+            console.log('[STAY-NOTES] Expand button clicked');
             this.togglePanel();
         });
         document.body.appendChild(expandBtn);
@@ -373,9 +363,9 @@ window.CarDetailPanel = {
      * Update panel content using unified NotesEditor
      */
     async updatePanelContent() {
-        console.log('[CAR-NOTES] updatePanelContent called, panelElement exists?', !!this.panelElement);
+        console.log('[STAY-NOTES] updatePanelContent called, panelElement exists?', !!this.panelElement);
         if (!this.panelElement) {
-            console.warn('[CAR-NOTES] ⚠️ panelElement is null/undefined, cannot update content');
+            console.warn('[STAY-NOTES] ⚠️ panelElement is null/undefined, cannot update content');
             return;
         }
 
@@ -389,24 +379,22 @@ window.CarDetailPanel = {
                 color: this.currentColor,
                 sort: this.currentSort,
                 confirmed: this.isVerified,
-                sold: this.isSold,
+                unavailable: this.isUnavailable,
                 features: this.currentFeatures || {},
-                make: this.currentMake,
-                model: this.currentModel,
-                price: this.currentPrice,
-                price_eur: this.currentPriceEur,
-                mileage: this.currentMileage,
-                year: this.currentYear,
-                seat_type: this.currentSeatType,
-                climate: this.currentClimate,
-                owners: this.currentOwners,
-                tow_hitch_type: this.currentTowHitchType
+                name: this.currentName,
+                price_per_night: this.currentPricePerNight,
+                location: this.currentLocation,
+                site_rating: this.currentSiteRating,
+                bedrooms: this.currentBedrooms,
+                beds: this.currentBeds,
+                distance_beach: this.currentDistanceBeach,
+                distance_airport: this.currentDistanceAirport
             };
 
             // Get editor content container
             const editorContainer = document.getElementById('unified-panel-editor-content');
             if (!editorContainer) {
-                console.error('[CAR-NOTES] Editor container not found');
+                console.error('[STAY-NOTES] Editor container not found');
                 return;
             }
 
@@ -438,11 +426,11 @@ window.CarDetailPanel = {
     updateExportSection() {
         const section = document.getElementById('unified-export-section');
         if (!section) {
-            console.warn('[CAR-NOTES] Export section not found in DOM');
+            console.warn('[STAY-NOTES] Export section not found in DOM');
             return;
         }
 
-        console.log('[CAR-NOTES] Updating export section');
+        console.log('[STAY-NOTES] Updating export section');
         section.innerHTML = '';
 
         const label = document.createElement('div');
@@ -497,42 +485,40 @@ window.CarDetailPanel = {
         });
 
         section.appendChild(container);
-        console.log('[CAR-NOTES] Export section updated successfully');
+        console.log('[STAY-NOTES] Export section updated successfully');
     },
 
     /**
      * Export data as Excel format (TSV for easy paste)
      */
     exportAsExcel() {
-        const data = window.extractCarData?.();
-        if (!data) return;
-
         const rows = [
             ['Field', 'Value'],
-            ['Car ID', data.carId || ''],
-            ['Title', data.title || ''],
-            ['Price', data.price || ''],
-            ['Mileage', data.mileage || ''],
-            ['Year', data.year || ''],
-            ['Engine', data.engine || ''],
-            ['Transmission', data.transmission || ''],
-            ['Fuel', data.fuel || ''],
+            ['Property ID', this.currentCarId || ''],
+            ['Name', this.currentName || ''],
+            ['Price/night', this.currentPricePerNight || ''],
+            ['Location', this.currentLocation || ''],
+            ['Site Rating', this.currentSiteRating || ''],
+            ['Bedrooms', this.currentBedrooms || ''],
+            ['Beds', this.currentBeds || ''],
+            ['Distance Beach (km)', this.currentDistanceBeach || ''],
+            ['Distance Airport (km)', this.currentDistanceAirport || ''],
             ['Note', this.currentNote || ''],
             ['Verified', this.isVerified ? 'Yes' : 'No'],
-            ['Sort', this.currentSort === -1 ? 'Excluded' : `Level ${this.currentSort}`],
-            ...Object.entries(this.currentFeatures).map(([name, state]) => [
-                `Feature: ${name}`,
+            ['Unavailable', this.isUnavailable ? 'Yes' : 'No'],
+            ['Rating', this.currentSort === -1 ? 'Excluded' : (this.currentSort === null ? 'None' : `Level ${this.currentSort}`)],
+            ...Object.entries(this.currentFeatures || {}).map(([name, state]) => [
+                `Amenity: ${name}`,
                 state === true ? 'Yes' : (state === null ? 'Unknown' : 'No')
             ])
         ];
 
         const tsv = rows.map(row => row.join('\t')).join('\n');
-
         const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `car_${this.currentCarId}_data.tsv`;
+        a.download = `property_${this.currentCarId}_data.tsv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -571,7 +557,7 @@ window.CarDetailPanel = {
      * Clear panel data (called when note is deleted)
      */
     clearPanel() {
-        console.log('[CAR-NOTES] clearPanel called for carId:', this.currentCarId);
+        console.log('[STAY-NOTES] clearPanel called for carId:', this.currentCarId);
 
         // Set flag to prevent MutationObserver from reinitializing
         // This flag will prevent route() from calling showPanel() while we're clearing
@@ -581,20 +567,18 @@ window.CarDetailPanel = {
         this.currentCarId = null;
         this.currentFeatures = null;
         this.isVerified = false;
-        this.isSold = false;
+        this.isUnavailable = false;
         this.currentSort = -1;
         this.currentNote = '';
         this.currentColor = '#e0e0e0';
-        this.currentMake = '';
-        this.currentModel = '';
-        this.currentPrice = '';
-        this.currentPriceEur = '';
-        this.currentMileage = '';
-        this.currentYear = '';
-        this.currentSeatType = '';
-        this.currentClimate = '';
-        this.currentOwners = '';
-        this.currentTowHitchType = '';
+        this.currentName = '';
+        this.currentPricePerNight = '';
+        this.currentLocation = '';
+        this.currentSiteRating = '';
+        this.currentBedrooms = '';
+        this.currentBeds = '';
+        this.currentDistanceBeach = '';
+        this.currentDistanceAirport = '';
 
         // Hide panel instead of clearing content - avoids triggering MutationObserver
         const wrapper = this.wrapperElement;
@@ -606,7 +590,7 @@ window.CarDetailPanel = {
         // This allows the router to re-initialize only AFTER page refresh
         setTimeout(() => {
             window._panelClearing = false;
-            console.log('[CAR-NOTES] ✅ Panel cleared and reinit flag reset');
+            console.log('[STAY-NOTES] ✅ Panel cleared and reinit flag reset');
         }, 2000);
     },
 

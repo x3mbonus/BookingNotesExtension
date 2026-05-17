@@ -1,8 +1,8 @@
-// Car Notes - Content Script
-// Adds pencil icons and notes to car listings on mobile.de and otomoto.pl
+// Stay Notes - Content Script
+// Adds pencil icons and notes to accommodation listings on booking.com and airbnb.com
 
 const processedArticles = new Set();
-const queriedCarIds = new Set(); // Track which car IDs we've already fetched from DB
+const queriedPropertyIds = new Set(); // Track which property IDs we've already fetched from DB
 const notesCache = {}; // Cache fetched notes to avoid re-querying on reinit
 let initializeTimer = null; // Debounce timer
 
@@ -48,22 +48,16 @@ async function addNoteButton(article, carId, dbNote = null) {
         return;
     }
 
-    // Use provided note from batch query
-    // Only fallback to individual fetch if this car wasn't in a batch query
     let note = dbNote;
-    if (note === null && !queriedCarIds.has(carId)) {
-        // Car wasn't batch-queried yet, fetch individually
+    if (note === null && !queriedPropertyIds.has(carId)) {
         note = await getNote(carId);
     }
-    // If note is still null but carId IS in queriedCarIds, it means no note exists (don't fetch again)
 
-    // Create the note display container
     const noteDisplay = document.createElement('div');
-    noteDisplay.className = 'car-note-display';
+    noteDisplay.className = 'property-note-display';
     noteDisplay.setAttribute('data-car-id', carId);
 
     if (note) {
-        // Display the note with stars based on rating
         const textColor = getTextColorForBackground(note.color);
         const starsHtml = sortToStarDisplay(note.sort);
 
@@ -77,16 +71,13 @@ async function addNoteButton(article, carId, dbNote = null) {
             </div>
         `;
     } else {
-        // Display empty state with pencil button only if carId is valid
         noteDisplay.innerHTML = `
             <button type="button" class="car-note-add-btn" data-car-id="${carId}" title="Add note">✏️</button>
         `;
     }
 
-    // Insert note display as sibling after article
     article.parentNode.insertBefore(noteDisplay, article.nextSibling);
 
-    // Attach event listeners
     const editBtn = noteDisplay.querySelector('.car-note-edit-btn');
     const addBtn = noteDisplay.querySelector('.car-note-add-btn');
 
@@ -157,16 +148,13 @@ async function showNoteModal(carId, existingNote, article) {
         onClose: async () => {
             currentModal = null;
 
-            // Refresh the note display for this car
-            const noteDisplay = document.querySelector(`[data-car-id="${carId}"].car-note-display`);
+            const noteDisplay = document.querySelector(`[data-car-id="${carId}"].property-note-display`);
             if (noteDisplay) {
                 noteDisplay.remove();
             }
 
-            // Fetch fresh note data from DB and re-add
             if (article) {
-                // Force fetch fresh data by removing from queriedCarIds cache
-                queriedCarIds.delete(carId);
+                queriedPropertyIds.delete(carId);
                 const freshNote = await getNote(carId);
                 await addNoteButton(article, carId, freshNote);
             }

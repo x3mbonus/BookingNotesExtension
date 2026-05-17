@@ -16,10 +16,10 @@ window.ListingHandler = {
             }
 
             const carId = extractIdFn(article);
-            if (carId && carId.trim() && (!queriedCarIds.has(carId) || (isCacheEmpty && queriedCarIds.size > 0))) {
+            if (carId && carId.trim() && (!queriedPropertyIds.has(carId) || (isCacheEmpty && queriedPropertyIds.size > 0))) {
                 carIds.push(carId);
-                if (!queriedCarIds.has(carId)) {
-                    queriedCarIds.add(carId);
+                if (!queriedPropertyIds.has(carId)) {
+                    queriedPropertyIds.add(carId);
                 }
             }
         });
@@ -49,7 +49,7 @@ window.ListingHandler = {
 
             // Check if button already exists
             const existingDisplay = article.nextElementSibling;
-            const hasNoteDisplay = existingDisplay && existingDisplay.classList.contains('car-note-display');
+            const hasNoteDisplay = existingDisplay && existingDisplay.classList.contains('property-note-display');
 
             if (!hasNoteDisplay) {
                 const carId = extractIdFn(article);
@@ -70,7 +70,7 @@ window.ListingHandler = {
      * Clean up orphaned displays
      */
     cleanupOrphanedDisplays(currentArticleIds) {
-        document.querySelectorAll('.car-note-display').forEach(noteDisplay => {
+        document.querySelectorAll('.property-note-display').forEach(noteDisplay => {
             const carId = noteDisplay.getAttribute('data-car-id');
             if (!currentArticleIds.has(carId)) {
                 noteDisplay.remove();

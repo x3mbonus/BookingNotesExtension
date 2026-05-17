@@ -57,7 +57,7 @@ window.ComparePanel = {
         `;
 
         const title = document.createElement('h2');
-        title.textContent = 'Compare Cars';
+        title.textContent = 'Compare Properties';
         title.style.cssText = 'margin: 0; font-size: 18px;';
 
         const closeBtn = document.createElement('button');
@@ -165,7 +165,7 @@ window.ComparePanel = {
         maxLabel.appendChild(maxInput);
         filterSection.appendChild(maxLabel);
 
-        // Sold checkbox (default: unchecked = exclude sold)
+        // Unavailable checkbox
         const soldLabel = document.createElement('label');
         soldLabel.style.cssText = `
             display: flex;
@@ -187,7 +187,7 @@ window.ComparePanel = {
             updateTable();
         };
         soldLabel.appendChild(soldCheckbox);
-        soldLabel.appendChild(document.createTextNode('🏷️ Include Sold'));
+        soldLabel.appendChild(document.createTextNode('🚫 Include Unavailable'));
         filterSection.appendChild(soldLabel);
 
         // Body
@@ -212,7 +212,7 @@ window.ComparePanel = {
                 );
 
                 if (cars.length === 0) {
-                    body.innerHTML = '<p style="text-align: center; color: #999;">No cars to compare</p>';
+                    body.innerHTML = '<p style="text-align: center; color: #999;">No properties to compare</p>';
                 } else {
                     body.innerHTML = ''; // Clear loading message
                     const allFeatures = await window.FeaturesManager?.getFullFeaturesConfig?.() || [];
@@ -232,12 +232,12 @@ window.ComparePanel = {
                     footer.innerHTML = `
                         <strong>Legend:</strong><br>
                         ✓ = Feature confirmed | ✗ = Feature not present | ? = Feature unknown<br>
-                        <strong>Sorted by:</strong> Rating (Best → Good → Fair → Poor → Excluded), then by Price
+                        <strong>Sorted by:</strong> Rating (Best → Good → Fair → Poor → Excluded)
                     `;
                     body.appendChild(footer);
                 }
             } catch (error) {
-                console.error('[CAR-NOTES] Error loading comparison:', error);
+                console.error('[STAY-NOTES] Error loading comparison:', error);
                 body.innerHTML = '<p style="color: red;">Error loading cars. Please try again.</p>';
             }
         };
@@ -266,55 +266,50 @@ window.ComparePanel = {
      */
     async _fetchAndSortCars(selectedRatings, maxCars, currentCarId, currentCarSort, includeSold = false) {
         try {
-            // STEP 1: Get all cars (metadata only — no features yet)
-            const cars = await window.SupabaseApi?.getAllCars?.() || [];
+            // STEP 1: Get all properties (metadata only — no features yet)
+            const cars = await window.SupabaseApi?.getAllProperties?.() || [];
             if (cars.length === 0) return [];
 
             // STEP 2: Map to lightweight objects (no features)
-            const toCarObj = (car) => ({
-                carId: car.car_id,
-                isCurrentCar: car.car_id === currentCarId,
-                sold: car.sold || false,
-                note: car.text || '',
+            const toCarObj = (prop) => ({
+                carId: prop.property_id,
+                isCurrentCar: prop.property_id === currentCarId,
+                sold: prop.unavailable || false,
+                note: prop.text || '',
                 features: {},
                 metadata: {
-                    make: car.make,
-                    model: car.model,
-                    url: car.url || '',
-                    address: car.address || '',
-                    price: parseFloat(car.price_eur || car.price || 0),
-                    price_eur: car.price_eur,
-                    price_pln: car.price,
-                    mileage: car.mileage,
-                    year: car.year,
-                    seat_type: car.seat_type,
-                    climate: car.climate,
-                    owners: car.owners,
-                    tow_hitch_type: car.tow_hitch_type,
-                    sort: car.sort,
-                    photo_url: car.photo_url || ''
+                    name: prop.name,
+                    url: prop.url || '',
+                    location: prop.location || '',
+                    price: parseFloat((prop.price_per_night || '0').toString().replace(/[^\d.]/g, '')) || 0,
+                    price_per_night: prop.price_per_night,
+                    site_rating: prop.site_rating,
+                    bedrooms: prop.bedrooms,
+                    beds: prop.beds,
+                    distance_beach: prop.distance_beach,
+                    distance_airport: prop.distance_airport,
+                    sort: prop.sort,
+                    photo_url: prop.photo_url || ''
                 }
             });
 
-            const currentCar = cars.find(c => c.car_id === currentCarId);
-            const otherCars  = cars.filter(c => c.car_id !== currentCarId);
+            const currentCar = cars.find(c => c.property_id === currentCarId);
+            const otherCars  = cars.filter(c => c.property_id !== currentCarId);
 
-            // STEP 3: Filter by rating + sold, sort, then limit
+            // STEP 3: Filter by rating + unavailable, sort, then limit
             const ratingOrder = [0, 1, 2, 3, -1];
             const filteredCars = otherCars
                 .filter(c => {
-                    if (!includeSold && c.sold) return false;
+                    if (!includeSold && c.unavailable) return false;
                     const rating = c.sort === null ? 'null' : c.sort;
                     return selectedRatings.includes(rating);
                 })
                 .sort((a, b) => {
                     const aSort = a.sort, bSort = b.sort;
-                    if (aSort === null && bSort === null) return (a.price_eur || 999999) - (b.price_eur || 999999);
+                    if (aSort === null && bSort === null) return 0;
                     if (aSort === null) return 1;
                     if (bSort === null) return -1;
-                    const idxDiff = ratingOrder.indexOf(aSort) - ratingOrder.indexOf(bSort);
-                    if (idxDiff !== 0) return idxDiff;
-                    return (parseFloat(a.price_eur || 0) || 999999) - (parseFloat(b.price_eur || 0) || 999999);
+                    return ratingOrder.indexOf(aSort) - ratingOrder.indexOf(bSort);
                 });
 
             // STEP 4: Apply maxCars limit BEFORE fetching features
@@ -322,24 +317,24 @@ window.ComparePanel = {
             const visibleCars   = [...(currentCar ? [currentCar] : []), ...limitedOthers];
 
             // STEP 5: Fetch features only for the cars we will display
-            const featuresMap = await this._fetchAllCarFeatures(visibleCars.map(c => c.car_id));
+            const featuresMap = await this._fetchAllCarFeatures(visibleCars.map(c => c.property_id));
 
             // STEP 6: Assemble final list with features
             const result = visibleCars.map(car => {
                 const obj = toCarObj(car);
-                obj.features = featuresMap[car.car_id] || {};
+                obj.features = featuresMap[car.property_id] || {};
                 return obj;
             });
 
             return result;
         } catch (error) {
-            console.error('[CAR-NOTES] Error fetching cars:', error);
+            console.error('[STAY-NOTES] Error fetching cars:', error);
             return [];
         }
     },
 
     /**
-     * Fetch features for all given car IDs in parallel using the proven SupabaseApi.getCarFeatures path.
+     * Fetch features for all given property IDs in parallel.
      * @param {Array} carIds - Array of car IDs to fetch features for
      * @returns {Object} Map of { carId: { featureKey: state } }
      */
@@ -349,10 +344,10 @@ window.ComparePanel = {
         const results = await Promise.all(
             carIds.map(async carId => {
                 try {
-                    const features = await window.SupabaseApi.getCarFeatures(carId);
+                    const features = await window.SupabaseApi.getPropertyFeatures(carId);
                     return { carId, features: features || {} };
                 } catch (err) {
-                    console.warn('[ComparePanel._fetchAllCarFeatures] Error for car', carId, err);
+                    console.warn('[ComparePanel._fetchAllCarFeatures] Error for property', carId, err);
                     return { carId, features: {} };
                 }
             })

@@ -6,14 +6,14 @@
 // ========================================
 // Change ENV_SUFFIX to switch between environments:
 //   '_local'  = Development (use _local suffix on tables)
-//   ''   = Production (use _prod suffix on tables)
+//   ''        = Production
 // ========================================
 // const ENV_SUFFIX = '_local';
 const ENV_SUFFIX = '';
 
-const TABLE_CAR_DATA = `car_data${ENV_SUFFIX}`;
-const TABLE_FEATURES_CONFIG = `features_config${ENV_SUFFIX}`;
-const TABLE_CAR_FEATURES = `car_features${ENV_SUFFIX}`;
+const TABLE_PROPERTY_DATA     = `stay_property_data${ENV_SUFFIX}`;
+const TABLE_FEATURES_CONFIG   = `stay_features_config${ENV_SUFFIX}`;
+const TABLE_PROPERTY_FEATURES = `stay_property_features${ENV_SUFFIX}`;
 
 window.SupabaseClient = {
     url: null,
@@ -21,13 +21,12 @@ window.SupabaseClient = {
     isConfigured: false,
     lastError: null,
 
-    // Initialize with credentials from storage
     async init() {
         return new Promise((resolve) => {
-            console.log('[CAR-NOTES] Loading credentials from storage...');
+            console.log('[STAY-NOTES] Loading credentials from storage...');
             chrome.storage.sync.get(['supabaseUrl', 'supabaseKey'], (result) => {
                 if (!result.supabaseUrl || !result.supabaseKey) {
-                    console.warn('[CAR-NOTES] Credentials not found');
+                    console.warn('[STAY-NOTES] Credentials not found');
                     this.isConfigured = false;
                     resolve(false);
                     return;
@@ -37,9 +36,9 @@ window.SupabaseClient = {
                     this.url = result.supabaseUrl.replace(/\/$/, '');
                     this.key = result.supabaseKey;
                     this.isConfigured = true;
-                    console.log('[CAR-NOTES] ✅ Ready:', this.url);
+                    console.log('[STAY-NOTES] ✅ Ready:', this.url);
                 } catch (error) {
-                    console.error('[CAR-NOTES] ❌ Error:', error);
+                    console.error('[STAY-NOTES] ❌ Error:', error);
                     this.isConfigured = false;
                 }
 
@@ -48,13 +47,11 @@ window.SupabaseClient = {
         });
     },
 
-    // Check if ready
     async isReady() {
         if (this.isConfigured && this.url && this.key) return true;
         return await this.init();
     },
 
-    // Get credentials
     async getCredentials() {
         return new Promise((resolve) => {
             chrome.storage.sync.get(['supabaseUrl', 'supabaseKey'], (result) => {
@@ -66,12 +63,11 @@ window.SupabaseClient = {
         });
     },
 
-    // Save and test credentials
     async setCredentials(url, key) {
         return new Promise(async (resolve) => {
             try {
                 const testUrl = url.replace(/\/$/, '');
-                const response = await fetch(`${testUrl}/rest/v1/${TABLE_CAR_DATA}?limit=1`, {
+                const response = await fetch(`${testUrl}/rest/v1/${TABLE_PROPERTY_DATA}?limit=1`, {
                     method: 'GET',
                     headers: {
                         'apikey': key,
@@ -94,14 +90,13 @@ window.SupabaseClient = {
                     resolve(true);
                 });
             } catch (error) {
-                console.error('[CAR-NOTES] Connection test failed:', error);
+                console.error('[STAY-NOTES] Connection test failed:', error);
                 this.isConfigured = false;
                 resolve(false);
             }
         });
     },
 
-    // Clear credentials
     async clearCredentials() {
         return new Promise((resolve) => {
             chrome.storage.sync.remove(['supabaseUrl', 'supabaseKey'], () => {
@@ -116,68 +111,49 @@ window.SupabaseClient = {
 
 // Supabase REST API methods
 window.SupabaseApi = {
-    // Environment configuration
     ENV_SUFFIX,
-    TABLE_CAR_DATA,
+    TABLE_PROPERTY_DATA,
     TABLE_FEATURES_CONFIG,
-    TABLE_CAR_FEATURES,
+    TABLE_PROPERTY_FEATURES,
 
-    // Get single car data
-    async getCarData(carId) {
+    // Get single property data (with features)
+    async getPropertyData(propertyId) {
         if (!await window.SupabaseClient.isReady()) {
-            console.log('[CAR-NOTES] Not configured');
+            console.log('[STAY-NOTES] Not configured');
             return null;
         }
 
         try {
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            console.log('[CAR-NOTES] GET', url);
-
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Error:', response.status, errorText);
-                throw new Error(`HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            console.log('[CAR-NOTES] Response:', data);
-
             if (Array.isArray(data) && data.length > 0) {
                 const row = data[0];
-
-                // Get features from car_features table (1:M relationship)
-                const features = await this.getCarFeatures(carId) || {};
-
+                const features = await this.getPropertyFeatures(propertyId) || {};
                 return {
                     text: row.text,
                     color: row.color,
                     createdAt: row.created_at,
                     updatedAt: row.updated_at,
-                    features: features,
+                    features,
                     sort: row.sort,
                     confirmed: row.confirmed || false,
-                    sold: row.sold || false,
-                    featuresSource: row.features_source || null,
-                    make: row.make || null,
-                    model: row.model || null,
-                    price: row.price || null,
-                    price_eur: row.price_eur || null,
-                    year: row.year || null,
-                    mileage: row.mileage || null,
-                    address: row.address || null,
-                    interior: row.interior || null,
-                    seat_type: row.seat_type || null,
-                    climate: row.climate || null,
-                    owners: row.owners || null,
-                    tow_hitch_type: row.tow_hitch_type || null,
+                    unavailable: row.unavailable || false,
+                    name: row.name || null,
+                    price_per_night: row.price_per_night || null,
+                    location: row.location || null,
+                    site_rating: row.site_rating || null,
+                    platform: row.platform || null,
+                    bedrooms: row.bedrooms || null,
+                    beds: row.beds || null,
+                    distance_beach: row.distance_beach || null,
+                    distance_airport: row.distance_airport || null,
                     url: row.url || null,
                     photo_url: row.photo_url || null
                 };
@@ -185,43 +161,27 @@ window.SupabaseApi = {
 
             return null;
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return null;
         }
     },
 
-    // Get only car metadata WITHOUT fetching features (avoids duplicate requests)
-    async getCarDataMetadataOnly(carId) {
-        if (!await window.SupabaseClient.isReady()) {
-            console.log('[CAR-NOTES] Not configured');
-            return null;
-        }
+    // Get property metadata only (no features re-fetch)
+    async getPropertyDataMetadataOnly(propertyId) {
+        if (!await window.SupabaseClient.isReady()) return null;
 
         try {
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            console.log('[CAR-NOTES] GET', url);
-
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Error:', response.status, errorText);
-                throw new Error(`HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            console.log('[CAR-NOTES] Response:', data);
-
             if (Array.isArray(data) && data.length > 0) {
                 const row = data[0];
-
-                // Don't fetch features - caller should already have them
                 return {
                     text: row.text,
                     color: row.color,
@@ -229,20 +189,16 @@ window.SupabaseApi = {
                     updatedAt: row.updated_at,
                     sort: row.sort,
                     confirmed: row.confirmed || false,
-                    sold: row.sold || false,
-                    featuresSource: row.features_source || null,
-                    make: row.make || null,
-                    model: row.model || null,
-                    price: row.price || null,
-                    price_eur: row.price_eur || null,
-                    year: row.year || null,
-                    mileage: row.mileage || null,
-                    address: row.address || null,
-                    interior: row.interior || null,
-                    seat_type: row.seat_type || null,
-                    climate: row.climate || null,
-                    owners: row.owners || null,
-                    tow_hitch_type: row.tow_hitch_type || null,
+                    unavailable: row.unavailable || false,
+                    name: row.name || null,
+                    price_per_night: row.price_per_night || null,
+                    location: row.location || null,
+                    site_rating: row.site_rating || null,
+                    platform: row.platform || null,
+                    bedrooms: row.bedrooms || null,
+                    beds: row.beds || null,
+                    distance_beach: row.distance_beach || null,
+                    distance_airport: row.distance_airport || null,
                     url: row.url || null,
                     photo_url: row.photo_url || null
                 };
@@ -250,64 +206,52 @@ window.SupabaseApi = {
 
             return null;
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return null;
         }
     },
 
-    // Get multiple cars by IDs
-    async getDataByIds(carIds) {
+    // Get multiple properties by IDs (for listing page batch load)
+    async getDataByIds(propertyIds) {
         if (!await window.SupabaseClient.isReady()) return {};
 
         try {
-            if (!Array.isArray(carIds) || carIds.length === 0) return {};
+            if (!Array.isArray(propertyIds) || propertyIds.length === 0) return {};
 
-            const idList = carIds.map(id => encodeURIComponent(id)).join(',');
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=in.(${idList})`;
-            console.log('[CAR-NOTES] GET', url);
+            const idList = propertyIds.map(id => encodeURIComponent(id)).join(',');
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=in.(${idList})`;
 
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
             const result = {};
 
             if (Array.isArray(data)) {
                 for (const row of data) {
-                    // Load features from car_features table (not from columns)
-                    const features = await this.getCarFeatures(row.car_id) || {};
-
-                    result[row.car_id] = {
+                    const features = await this.getPropertyFeatures(row.property_id) || {};
+                    result[row.property_id] = {
                         text: row.text,
                         color: row.color,
                         createdAt: row.created_at,
                         updatedAt: row.updated_at,
-                        features: features,
+                        features,
                         sort: row.sort,
                         confirmed: row.confirmed || false,
-                        sold: row.sold || false,
-                        featuresSource: row.features_source || null,
-                        make: row.make || null,
-                        model: row.model || null,
-                        price: row.price || null,
-                        price_eur: row.price_eur || null,
-                        year: row.year || null,
-                        mileage: row.mileage || null,
-                        address: row.address || null,
-                        interior: row.interior || null,
-                        seat_type: row.seat_type || null,
-                        climate: row.climate || null,
-                        owners: row.owners || null,
-                        tow_hitch_type: row.tow_hitch_type || null,
+                        unavailable: row.unavailable || false,
+                        name: row.name || null,
+                        price_per_night: row.price_per_night || null,
+                        location: row.location || null,
+                        site_rating: row.site_rating || null,
+                        platform: row.platform || null,
+                        bedrooms: row.bedrooms || null,
+                        beds: row.beds || null,
+                        distance_beach: row.distance_beach || null,
+                        distance_airport: row.distance_airport || null,
                         url: row.url || null
                     };
                 }
@@ -315,54 +259,44 @@ window.SupabaseApi = {
 
             return result;
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return {};
         }
     },
 
-    // Save car data (update or insert)
-    async saveCarData(carId, noteData, featuresData, metadata = {}) {
-        console.log('[CAR-NOTES] Called:', { carId, noteData, featuresData, metadata });
-
+    // Save property data (upsert via PATCH → POST fallback)
+    async savePropertyData(propertyId, noteData, featuresData, metadata = {}) {
         if (!await window.SupabaseClient.isReady()) {
-            console.error('[CAR-NOTES] Not configured');
             return { success: false, reason: 'not_configured' };
         }
 
         try {
             const now = new Date().toISOString();
 
-            // Build update payload
             const updatePayload = {
                 ...(noteData && {
                     text: noteData.text,
-                    color: noteData.color || '#e0e0e0'  // Default to gray (no rating)
+                    color: noteData.color || '#e0e0e0'
                 }),
                 ...(featuresData && {
                     sort: featuresData.sort || 0,
-                    confirmed: featuresData.confirmed || false,
-                    features_source: featuresData.featuresSource || null
+                    confirmed: featuresData.confirmed || false
                 }),
-                ...(metadata.make && { make: metadata.make }),
-                ...(metadata.model && { model: metadata.model }),
-                ...(metadata.price && { price: metadata.price }),
-                ...(metadata.price_eur && { price_eur: metadata.price_eur }),
-                ...(metadata.mileage && { mileage: metadata.mileage }),
-                ...(metadata.year && { year: metadata.year }),
-                ...(metadata.address && { address: metadata.address }),
-                ...(metadata.seat_type && { seat_type: metadata.seat_type }),
-                ...(metadata.climate && { climate: metadata.climate }),
-                ...(metadata.owners && { owners: metadata.owners }),
-                ...(metadata.tow_hitch_type && { tow_hitch_type: metadata.tow_hitch_type }),
-                ...(metadata.url && { url: metadata.url }),
-                ...(metadata.sold !== undefined && { sold: metadata.sold }),
+                ...(metadata.name              && { name: metadata.name }),
+                ...(metadata.price_per_night   && { price_per_night: metadata.price_per_night }),
+                ...(metadata.location          && { location: metadata.location }),
+                ...(metadata.site_rating       && { site_rating: metadata.site_rating }),
+                ...(metadata.platform          && { platform: metadata.platform }),
+                ...(metadata.bedrooms          && { bedrooms: metadata.bedrooms }),
+                ...(metadata.beds              && { beds: metadata.beds }),
+                ...(metadata.distance_beach    && { distance_beach: metadata.distance_beach }),
+                ...(metadata.distance_airport  && { distance_airport: metadata.distance_airport }),
+                ...(metadata.url               && { url: metadata.url }),
+                ...(metadata.unavailable !== undefined && { unavailable: metadata.unavailable }),
                 updated_at: now
             };
 
-            // Try UPDATE first
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            console.log('[CAR-NOTES] PATCH', updateUrl, updatePayload);
-
+            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
             const updateResponse = await fetch(updateUrl, {
                 method: 'PATCH',
                 headers: {
@@ -373,127 +307,124 @@ window.SupabaseApi = {
                 body: JSON.stringify(updatePayload)
             });
 
-            if (!updateResponse.ok) {
-                throw new Error(`PATCH failed: ${updateResponse.status}`);
-            }
+            if (!updateResponse.ok) throw new Error(`PATCH failed: ${updateResponse.status}`);
 
             const responseData = await updateResponse.json();
-            console.log('[CAR-NOTES] PATCH response:', responseData);
-
-            // If rows updated, success
             if (Array.isArray(responseData) && responseData.length > 0) {
-                console.log('✅ Updated');
                 return { success: true };
             }
 
-            // No rows updated, try INSERT
-            console.log('[CAR-NOTES] No rows updated, trying INSERT...');
-
+            // No rows updated — INSERT
             const insertPayload = {
-                car_id: carId,
+                property_id: propertyId,
                 text: noteData?.text || '',
-                color: noteData?.color || '#e0e0e0',  // Default to gray (no rating)
+                color: noteData?.color || '#e0e0e0',
                 sort: featuresData?.sort || 0,
                 confirmed: featuresData?.confirmed || false,
-                features_source: featuresData?.featuresSource || null,
-                make: metadata.make || null,
-                model: metadata.model || null,
-                price: metadata.price || null,
-                price_eur: metadata.price_eur || null,
-                mileage: metadata.mileage || null,
-                year: metadata.year || null,
-                address: metadata.address || null,
-                seat_type: metadata.seat_type || null,
-                climate: metadata.climate || null,
-                owners: metadata.owners || null,
-                tow_hitch_type: metadata.tow_hitch_type || null,
+                name: metadata.name || null,
+                price_per_night: metadata.price_per_night || null,
+                location: metadata.location || null,
+                site_rating: metadata.site_rating || null,
+                platform: metadata.platform || null,
+                bedrooms: metadata.bedrooms || null,
+                beds: metadata.beds || null,
+                distance_beach: metadata.distance_beach || null,
+                distance_airport: metadata.distance_airport || null,
                 url: metadata.url || null,
-                sold: metadata.sold || false,
+                unavailable: metadata.unavailable || false,
                 created_at: now,
                 updated_at: now
             };
 
-            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}`;
-            console.log('[CAR-NOTES] POST', insertUrl, insertPayload);
-
+            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
             const insertResponse = await fetch(insertUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
                 body: JSON.stringify([insertPayload])
             });
 
-            if (!insertResponse.ok) {
-                throw new Error(`INSERT failed: ${insertResponse.status}`);
-            }
+            if (!insertResponse.ok) throw new Error(`INSERT failed: ${insertResponse.status}`);
 
-            console.log('✅ Inserted');
             return { success: true };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Update only note text and color (independent operation)
-    async updateNoteText(carId, text, color) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
+    // Update note text + color
+    async updateNoteText(propertyId, text, color) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = {
-                text: text,
-                color: color || '#e0e0e0',
-                updated_at: new Date().toISOString()
-            };
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, color: color || '#e0e0e0', updated_at: new Date().toISOString() })
+            });
+            return { success: response.ok };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
 
-            console.log('[CAR-NOTES] PATCH', updateUrl, payload);
+    // Upsert note text + color
+    async upsertNoteText(propertyId, text, color) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
-            const response = await fetch(updateUrl, {
+        try {
+            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const patchResponse = await fetch(updateUrl, {
                 method: 'PATCH',
                 headers: {
                     'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ text, color: color || '#e0e0e0', updated_at: new Date().toISOString() })
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] Failed:', response.status, errorText);
-                return { success: false, error: errorText };
+            if (patchResponse.ok) {
+                const updated = await patchResponse.json();
+                if (Array.isArray(updated) && updated.length > 0) return { success: true };
             }
 
-            console.log('[CAR-NOTES] ✅ Updated');
-            return { success: true };
+            // Insert new record
+            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
+            const insertResponse = await fetch(insertUrl, {
+                method: 'POST',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    property_id: propertyId,
+                    text,
+                    color: color || '#e0e0e0',
+                    sort: null,
+                    confirmed: false,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+            });
+            return { success: insertResponse.ok };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Upsert note text and color - INSERT if not exists, UPDATE if exists
-    async upsertNoteText(carId, text, color) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
+    // Upsert note text + color + sort in one request
+    async upsertNoteTextWithSort(propertyId, text, color, sort) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
-            // First, try to PATCH (update)
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
             const payload = {
-                text: text,
+                text,
                 color: color || '#e0e0e0',
+                sort: sort === undefined ? null : sort,
                 updated_at: new Date().toISOString()
             };
 
-            console.log('[CAR-NOTES] PATCH', updateUrl, payload);
-
-            const response = await fetch(updateUrl, {
+            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const patchResponse = await fetch(updateUrl, {
                 method: 'PATCH',
                 headers: {
                     'apikey': window.SupabaseClient.key,
@@ -503,538 +434,229 @@ window.SupabaseApi = {
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] PATCH failed:', response.status, errorText);
-                // Fall through to INSERT
-            } else {
-                const updated = await response.json();
-                if (Array.isArray(updated) && updated.length > 0) {
-                    console.log('[CAR-NOTES] ✅ Updated existing record');
-                    return { success: true };
-                }
-                // No rows updated, need to INSERT
+            if (patchResponse.ok) {
+                const updated = await patchResponse.json();
+                if (Array.isArray(updated) && updated.length > 0) return { success: true };
             }
 
-            // Record doesn't exist, INSERT it
-            console.log('[CAR-NOTES] No existing record, creating new one...');
-            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}`;
-            const insertPayload = {
-                car_id: carId,
-                text: text,
-                color: color || '#e0e0e0',
-                sort: null,  // Explicitly set to null (no rating)
-                confirmed: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-
-            console.log('[CAR-NOTES] POST', insertUrl, insertPayload);
-
+            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
             const insertResponse = await fetch(insertUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(insertPayload)
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    property_id: propertyId,
+                    text,
+                    color: color || '#e0e0e0',
+                    sort: sort === undefined ? null : sort,
+                    confirmed: false,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
             });
-
-            if (!insertResponse.ok) {
-                const errorText = await insertResponse.text();
-                console.warn('[CAR-NOTES] INSERT failed:', insertResponse.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            console.log('[CAR-NOTES] ✅ Created new record');
-            return { success: true };
+            return { success: insertResponse.ok };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Upsert note with both color AND sort in single request
-    async upsertNoteTextWithSort(carId, text, color, sort) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-
+    async updateSort(propertyId, sort) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
         try {
-            // First, try to PATCH (update)
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = {
-                text: text,
-                color: color || '#e0e0e0',
-                sort: sort === undefined ? null : sort,  // Ensure sort is saved
-                updated_at: new Date().toISOString()
-            };
-
-            console.log('[CAR-NOTES] PATCH', updateUrl, payload);
-
-            const response = await fetch(updateUrl, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] PATCH failed:', response.status, errorText);
-                // Fall through to INSERT
-            } else {
-                const updated = await response.json();
-                if (Array.isArray(updated) && updated.length > 0) {
-                    console.log('[CAR-NOTES] ✅ Updated existing record');
-                    return { success: true };
-                }
-                // No rows updated, need to INSERT
-            }
-
-            // Record doesn't exist, INSERT it
-            console.log('[CAR-NOTES] No existing record, creating new one...');
-            const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}`;
-            const insertPayload = {
-                car_id: carId,
-                text: text,
-                color: color || '#e0e0e0',
-                sort: sort === undefined ? null : sort,  // Explicitly set sort
-                confirmed: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-
-            console.log('[CAR-NOTES] POST', insertUrl, insertPayload);
-
-            const insertResponse = await fetch(insertUrl, {
-                method: 'POST',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(insertPayload)
-            });
-
-            if (!insertResponse.ok) {
-                const errorText = await insertResponse.text();
-                console.warn('[CAR-NOTES] INSERT failed:', insertResponse.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            console.log('[CAR-NOTES] ✅ Created new record with color and sort');
-            return { success: true };
-        } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Update only sort/rating (independent operation)
-    async updateSort(carId, sort) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-
-        try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = {
-                sort: sort,
-                updated_at: new Date().toISOString()
-            };
-
-            console.log('[CAR-NOTES] PATCH', updateUrl, payload);
-
-            const response = await fetch(updateUrl, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] Failed:', response.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            console.log('[CAR-NOTES] ✅ Updated');
-            return { success: true };
-        } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Update sold status (independent operation)
-    async updateSold(carId, sold) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-
-        try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = { sold: sold, updated_at: new Date().toISOString() };
-
-            const response = await fetch(updateUrl, {
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
                 method: 'PATCH',
                 headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ sort, updated_at: new Date().toISOString() })
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] updateSold failed:', response.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            console.log('[CAR-NOTES] ✅ Sold updated to', sold);
-            return { success: true };
+            return { success: response.ok };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Update only verified/confirmed status (independent operation)
-    async updateConfirmed(carId, confirmed) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-
+    async updateUnavailable(propertyId, unavailable) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
         try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = {
-                confirmed: confirmed,
-                updated_at: new Date().toISOString()
-            };
-
-            console.log('[CAR-NOTES] PATCH', updateUrl, payload);
-
-            const response = await fetch(updateUrl, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.warn('[CAR-NOTES] Failed:', response.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            console.log('[CAR-NOTES] ✅ Updated');
-            return { success: true };
-        } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Update only metadata field (independent operation)
-    async updateMetadataField(carId, fieldName, fieldValue) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-
-        try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = {
-                [fieldName]: fieldValue,
-                updated_at: new Date().toISOString()
-            };
-
-            const response = await fetch(updateUrl, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Failed:', response.status, errorText);
-                return { success: false, error: errorText };
-            }
-
-            return { success: true };
-        } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Update multiple metadata fields in a single PATCH request
-    async updateMetadataFields(carId, fields) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
-        try {
-            const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            const payload = { ...fields, updated_at: new Date().toISOString() };
-            const response = await fetch(updateUrl, {
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
                 method: 'PATCH',
                 headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ unavailable, updated_at: new Date().toISOString() })
             });
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] updateMetadataFields failed:', response.status, errorText);
-                return { success: false, error: errorText };
-            }
-            return { success: true };
+            return { success: response.ok };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Delete car data
-    async deleteCarData(carId) {
-        if (!await window.SupabaseClient.isReady()) {
-            console.log('[CAR-NOTES] Not configured');
-            return { success: false, reason: 'not_configured' };
+    async updateConfirmed(propertyId, confirmed) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
+        try {
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirmed, updated_at: new Date().toISOString() })
+            });
+            return { success: response.ok };
+        } catch (error) {
+            return { success: false, error: error.message };
         }
+    },
+
+    async updateMetadataField(propertyId, fieldName, fieldValue) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
+        try {
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [fieldName]: fieldValue, updated_at: new Date().toISOString() })
+            });
+            return { success: response.ok };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    async updateMetadataFields(propertyId, fields) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
+        try {
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...fields, updated_at: new Date().toISOString() })
+            });
+            return { success: response.ok };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    async deletePropertyData(propertyId) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
-            // Step 1: Delete related features first (foreign key constraint)
-            const featureUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}?car_id=eq.${encodeURIComponent(carId)}`;
-            console.log('[CAR-NOTES] DELETE features:', featureUrl);
-
-            const featureResponse = await fetch(featureUrl, {
+            // Delete features first (foreign key)
+            const featureUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            await fetch(featureUrl, {
                 method: 'DELETE',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!featureResponse.ok) {
-                const errorText = await featureResponse.text();
-                console.warn('[CAR-NOTES] Warning deleting features:', featureResponse.status, errorText);
-                // Don't throw - continue to delete car data anyway
-            } else {
-                console.log('[CAR-NOTES] ✅ Deleted related features');
-            }
-
-            // Step 2: Delete the car data itself
-            const carUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-            console.log('[CAR-NOTES] DELETE car:', carUrl);
-
-            const response = await fetch(carUrl, {
+            const dataUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+            const response = await fetch(dataUrl, {
                 method: 'DELETE',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Error:', response.status, errorText);
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            console.log('[CAR-NOTES] ✅ Deleted car data');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return { success: true };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // ==================== NEW: Features Table Methods ====================
+    // ==================== Features Table Methods ====================
 
-    // Get features config (feature dictionary)
     async getFeatureConfig() {
         if (!await window.SupabaseClient.isReady()) return [];
 
         try {
             const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_FEATURES_CONFIG}?select=*&order=sort`;
-            console.log('[CAR-NOTES] GET', url);
-
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                console.warn('[CAR-NOTES] Failed:', response.status);
-                return [];
-            }
-
-            const data = await response.json();
-            console.log('[CAR-NOTES] Got', data.length, 'features');
-
-            // DEBUG: Show all feature keys
-            console.log('[CAR-NOTES] Feature keys:', data.map(f => f.key).join(', '));
-
-            // DEBUG: Specifically look for camera
-            const hasCamera = data.find(f => f.key === 'feature_camera');
-            console.log('[CAR-NOTES] Has feature_camera?', hasCamera ? 'YES ✅' : 'NO ❌');
-            if (hasCamera) {
-                console.log('[CAR-NOTES] Camera details:', hasCamera);
-            }
-
-            return data || [];
+            if (!response.ok) return [];
+            return await response.json() || [];
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return [];
         }
     },
 
-    // Get all features for a specific car (lightweight - only state + feature_id, no config joins)
-    async getCarFeatures(carId) {
+    async getPropertyFeatures(propertyId) {
         if (!await window.SupabaseClient.isReady()) return {};
 
         try {
-            // Only fetch feature_id and state - NO JOIN with config table
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}?car_id=eq.${encodeURIComponent(carId)}&select=feature_id,state`;
-            console.log('[CAR-NOTES] GET', url);
-
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}?property_id=eq.${encodeURIComponent(propertyId)}&select=feature_id,state`;
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                console.warn('[CAR-NOTES] Failed:', response.status);
-                return {};
-            }
+            if (!response.ok) return {};
 
             const data = await response.json();
-            console.log('[CAR-NOTES] Got', data.length, 'features for', carId);
-
-            // Get cached feature config to map feature_id to key (use FeaturesManager cache)
             const featureConfig = await window.FeaturesManager?.getFeatureConfig?.() || await this.getFeatureConfig();
             const idToKey = {};
-            featureConfig.forEach(fc => {
-                idToKey[fc.id] = fc.key;
-            });
+            featureConfig.forEach(fc => { idToKey[fc.id] = fc.key; });
 
-            // Convert to object: { key: state }
             const features = {};
             data.forEach(row => {
                 const key = idToKey[row.feature_id];
-                if (key) {
-                    features[key] = row.state;
-                }
+                if (key) features[key] = row.state;
             });
 
             return features;
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return {};
         }
     },
 
-    // Save car features (bulk upsert)
-    async saveCarFeaturesNew(carId, features, sort = null, confirmed = false) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
+    async savePropertyFeaturesNew(propertyId, features, sort = null, confirmed = false) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
-            console.log('[CAR-NOTES] Saving features for:', carId, 'confirmed:', confirmed);
+            // Ensure property record exists
+            const checkUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}&select=property_id`;
+            const checkResponse = await fetch(checkUrl, {
+                method: 'GET',
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
+            });
+            const existing = await checkResponse.json();
 
-            // Ensure car exists in car_data_local (required for foreign key)
-            try {
-                const checkUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}&select=car_id`;
-                const checkResponse = await fetch(checkUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': window.SupabaseClient.key,
-                        'Content-Type': 'application/json'
-                    }
+            if (!existing || existing.length === 0) {
+                const createUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
+                await fetch(createUrl, {
+                    method: 'POST',
+                    headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        property_id: propertyId,
+                        text: '',
+                        color: '#e0e0e0',
+                        sort: null,
+                        confirmed: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
                 });
-
-                const existing = await checkResponse.json();
-
-                if (!existing || existing.length === 0) {
-                    console.log('[CAR-NOTES] Car not found, creating entry...');
-                    // Create minimal car entry to satisfy foreign key constraint
-                    const createUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}`;
-                    const createResponse = await fetch(createUrl, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': window.SupabaseClient.key,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            car_id: carId,
-                            text: '',
-                            color: '#e0e0e0',  // Default gray (no rating)
-                            sort: null,         // Explicitly set to null (no rating) - NOT 5 stars
-                            confirmed: false,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        })
-                    });
-
-                    if (!createResponse.ok) {
-                        const errorText = await createResponse.text();
-                        console.warn('[CAR-NOTES] Warning: Could not create car entry:', errorText);
-                        // Continue anyway - actual car data might be created separately
-                    } else {
-                        console.log('[CAR-NOTES] ✓ Created car entry');
-                    }
-                }
-            } catch (checkError) {
-                console.warn('[CAR-NOTES] Warning checking for car:', checkError);
-                // Continue anyway
             }
 
-            // First, get feature config to map keys to IDs (use FeaturesManager cache)
             const featureConfig = await window.FeaturesManager?.getFeatureConfig?.() || await this.getFeatureConfig();
-            console.log('[CAR-NOTES] Feature config loaded:', featureConfig.length, 'features');
             const keyToId = {};
-            featureConfig.forEach(fc => {
-                keyToId[fc.key] = fc.id;
-            });
-            console.log('[CAR-NOTES] keyToId mapping:', keyToId);
+            featureConfig.forEach(fc => { keyToId[fc.key] = fc.id; });
 
-            // Prepare upsert payload
             const payload = [];
             Object.entries(features).forEach(([key, state]) => {
                 const featureId = keyToId[key];
-                console.log(`[CAR-NOTES] Feature key "${key}" (${state}) → feature_id: ${featureId || 'NOT FOUND'}`);
                 if (featureId) {
                     payload.push({
-                        car_id: carId,
+                        property_id: propertyId,
                         feature_id: featureId,
                         state: state === true ? true : (state === false ? false : null)
                     });
-                } else {
-                    console.warn(`[CAR-NOTES] ⚠️ SKIPPING feature "${key}" - not found in config!`);
                 }
             });
-            console.log('[CAR-NOTES] Final payload:', payload.length, 'features will be saved');
 
-            if (payload.length === 0) {
-                console.log('[CAR-NOTES] No features to save');
-                return { success: true };
-            }
+            if (payload.length === 0) return { success: true };
 
-            // Upsert using the new car_features table
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}?on_conflict=car_id,feature_id`;
-            console.log('[CAR-NOTES] PATCH', url);
-
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}?on_conflict=property_id,feature_id`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -1045,165 +667,94 @@ window.SupabaseApi = {
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Error:', response.status, errorText);
-                throw new Error(`HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            console.log('[CAR-NOTES] ✅ Saved features');
+            // Update sort and confirmed on property_data
+            if (sort !== null || confirmed !== null) {
+                const updatePayload = {};
+                if (sort !== null && sort !== undefined) updatePayload.sort = sort;
+                if (confirmed !== undefined) updatePayload.confirmed = confirmed;
 
-            // Update sort and confirmed status on car_data_local
-            if ((sort !== null && sort !== undefined) || (confirmed !== undefined && confirmed !== null)) {
-                try {
-                    const updatePayload = {};
-                    if (sort !== null && sort !== undefined) {
-                        console.log('[CAR-NOTES] Updating sort to:', sort);
-                        updatePayload.sort = sort;
-                    }
-                    if (confirmed !== undefined && confirmed !== null) {
-                        console.log('[CAR-NOTES] Updating confirmed status to:', confirmed);
-                        updatePayload.confirmed = confirmed;
-                    }
-
-                    const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}?car_id=eq.${encodeURIComponent(carId)}`;
-                    const updateResponse = await fetch(updateUrl, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': window.SupabaseClient.key,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(updatePayload)
-                    });
-
-                    if (!updateResponse.ok) {
-                        const errorText = await updateResponse.text();
-                        console.warn('[CAR-NOTES] Warning updating car_data:', errorText);
-                    } else {
-                        console.log('[CAR-NOTES] ✅ Updated car_data with sort and/or confirmed');
-                    }
-                } catch (updateError) {
-                    console.warn('[CAR-NOTES] Warning updating car_data:', updateError);
-                }
+                const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}?property_id=eq.${encodeURIComponent(propertyId)}`;
+                await fetch(updateUrl, {
+                    method: 'PATCH',
+                    headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
             }
 
             return { success: true };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Update single feature state
-    async updateCarFeature(carId, featureKey, state) {
-        if (!await window.SupabaseClient.isReady()) {
-            return { success: false, reason: 'not_configured' };
-        }
+    async updatePropertyFeature(propertyId, featureKey, state) {
+        if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
-            // Get feature ID from key - FORCE REFRESH to ensure latest features from database
             const featureConfig = await window.FeaturesManager?.getFeatureConfig?.(true) || await this.getFeatureConfig();
-
-            // Trim all keys in case of whitespace issues in database
             const trimmedConfig = featureConfig.map(f => ({ ...f, key: f.key.trim() }));
             const feature = trimmedConfig.find(f => f.key === featureKey.trim());
 
             if (!feature) {
-                console.error('[CAR-NOTES] Feature not found:', featureKey);
+                console.error('[STAY-NOTES] Feature not found:', featureKey);
                 return { success: false, error: 'Feature not found' };
             }
 
-            // Get feature ID
-            // Note: featureConfig was fetched with force refresh above
-            // Check if record exists
-            const checkUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}?car_id=eq.${encodeURIComponent(carId)}&feature_id=eq.${feature.id}`;
+            const checkUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}?property_id=eq.${encodeURIComponent(propertyId)}&feature_id=eq.${feature.id}`;
             const checkResponse = await fetch(checkUrl, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
-
             const existing = await checkResponse.json();
 
+            const normalizedState = state === true ? true : (state === false ? false : null);
+
             if (existing.length > 0) {
-                // Update
-                const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}?car_id=eq.${encodeURIComponent(carId)}&feature_id=eq.${feature.id}`;
+                const updateUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}?property_id=eq.${encodeURIComponent(propertyId)}&feature_id=eq.${feature.id}`;
                 const updateResponse = await fetch(updateUrl, {
                     method: 'PATCH',
-                    headers: {
-                        'apikey': window.SupabaseClient.key,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        state: state === true ? true : (state === false ? false : null),
-                        updated_at: new Date().toISOString()
-                    })
+                    headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state: normalizedState, updated_at: new Date().toISOString() })
                 });
-
-                if (!updateResponse.ok) {
-                    throw new Error(`PUT failed: ${updateResponse.status}`);
-                }
+                if (!updateResponse.ok) throw new Error(`PATCH failed: ${updateResponse.status}`);
             } else {
-                // Insert
-                const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_FEATURES}`;
+                const insertUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_FEATURES}`;
                 const insertResponse = await fetch(insertUrl, {
                     method: 'POST',
-                    headers: {
-                        'apikey': window.SupabaseClient.key,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify([{
-                        car_id: carId,
-                        feature_id: feature.id,
-                        state: state === true ? true : (state === false ? false : null)
-                    }])
+                    headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
+                    body: JSON.stringify([{ property_id: propertyId, feature_id: feature.id, state: normalizedState }])
                 });
-
-                if (!insertResponse.ok) {
-                    throw new Error(`POST failed: ${insertResponse.status}`);
-                }
+                if (!insertResponse.ok) throw new Error(`POST failed: ${insertResponse.status}`);
             }
 
-            console.log('[CAR-NOTES] ✅ Updated');
             return { success: true };
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Get all cars from database (for comparison)
-    async getAllCars() {
-        if (!await window.SupabaseClient.isReady()) {
-            return [];
-        }
+    // Get all properties (for comparison)
+    async getAllProperties() {
+        if (!await window.SupabaseClient.isReady()) return [];
 
         try {
-            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_CAR_DATA}`;
+            const url = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'apikey': window.SupabaseClient.key,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[CAR-NOTES] Error:', response.status, errorText);
-                return [];
-            }
-
-            const cars = await response.json();
-            return cars || [];
+            if (!response.ok) return [];
+            return await response.json() || [];
         } catch (error) {
-            console.error('[CAR-NOTES] Error:', error);
+            console.error('[STAY-NOTES] Error:', error);
             return [];
         }
     }
 };
 
-// Log that SupabaseApi has been initialized
-console.log('[CAR-NOTES] ✅ Initialized. updateCarFeature exists:', typeof window.SupabaseApi.updateCarFeature === 'function');
+console.log('[STAY-NOTES] ✅ Initialized. updatePropertyFeature exists:', typeof window.SupabaseApi.updatePropertyFeature === 'function');

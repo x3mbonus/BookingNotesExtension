@@ -254,95 +254,64 @@ window.UIComponents = {
         return window.FeaturesManager?.fullFeaturesListCache || [];
     },
 
-    // Render metadata section (above features) - compact version with Ukrainian labels only
-    createMetadataSection(carData, onMetadataChange) {
+    // Render metadata section — accommodation fields (all editable manually)
+    createMetadataSection(propertyData, onMetadataChange) {
         const section = document.createElement('div');
         section.className = 'ui-metadata-section';
 
         const metadataFields = [
-            // Read-only fields (auto-extracted from page)
             {
-                label: 'Марка',
-                key: 'make',
+                label: 'Назва',
+                key: 'name',
                 type: 'text',
-                placeholder: 'Auto-extracted',
-                readonly: true
+                placeholder: 'Назва об\'єкту'
             },
             {
-                label: 'Модель',
-                key: 'model',
+                label: 'Ціна/ніч',
+                key: 'price_per_night',
                 type: 'text',
-                placeholder: 'Auto-extracted',
-                readonly: true
+                placeholder: 'e.g., €85'
             },
-            // Numeric/text fields
             {
-                label: 'Ціна (PLN)',
-                key: 'price',
+                label: 'Локація',
+                key: 'location',
                 type: 'text',
-                placeholder: ''
+                placeholder: 'Місто, район'
             },
             {
-                label: 'Ціна (EUR)',
-                key: 'price_eur',
+                label: 'Рейтинг сайту',
+                key: 'site_rating',
                 type: 'text',
-                placeholder: 'Автоматично з PLN',
-                readonly: true
+                placeholder: 'e.g., 8.5'
             },
             {
-                label: 'Пробіг (км)',
-                key: 'mileage',
+                label: 'Спальні',
+                key: 'bedrooms',
                 type: 'text',
-                placeholder: 'e.g., 150000'
+                placeholder: 'Кількість спалень'
             },
             {
-                label: 'Рік',
-                key: 'year',
+                label: 'Ліжка',
+                key: 'beds',
                 type: 'text',
-                placeholder: 'e.g., 2019'
-            },
-            // Select fields
-            {
-                label: 'Тип сидінь',
-                key: 'seat_type',
-                type: 'select',
-                options: ['Не вказано', 'Alcantara', 'Leather', 'Part Leather', 'Cloth', 'Fabric', 'Suede']
+                placeholder: 'Кількість ліжок'
             },
             {
-                label: 'Клімат',
-                key: 'climate',
-                type: 'select',
-                options: ['Не вказано', '-', '2', '3', 'Auto']
+                label: 'До моря (км)',
+                key: 'distance_beach',
+                type: 'text',
+                placeholder: 'e.g., 0.5'
             },
             {
-                label: 'Власників',
-                key: 'owners',
-                type: 'select',
-                options: ['Не вказано', '1', '2', '3', '4+']
-            },
-            {
-                label: 'Фаркоп тип',
-                key: 'tow_hitch_type',
-                type: 'select',
-                options: ['Не вказано', 'No', 'Swiveling', 'Detachable', 'Fixed']
+                label: 'До аеропорту (км)',
+                key: 'distance_airport',
+                type: 'text',
+                placeholder: 'e.g., 15'
             }
         ];
 
-        // Detect if we're on mobile.de - if so, adjust price fields
-        const isMobileDe = window.location.hostname.includes('mobile.de');
-        if (isMobileDe && carData.price_eur) {
-            // Find and modify the PLN field
-            const plnField = metadataFields.find(f => f.key === 'price');
-            if (plnField) {
-                plnField.readonly = true;
-                plnField.placeholder = 'From EUR (reference)';
-                // Auto-calculate PLN from EUR: EUR * 4.26 (inverse of 23.50/100)
-                const eurPrice = parseFloat(carData.price_eur.toString().replace(/\s+/g, '').replace(/,/g, ''));
-                if (!isNaN(eurPrice) && eurPrice > 0) {
-                    carData.price = Math.round(eurPrice * 100 / 23.50).toString();
-                }
-            }
-        }
+        // Use propertyData as the data source
+        const carData = propertyData;
 
         const getMetadataColor = (field, value) => this.getMetadataColor(field, value);
 
@@ -491,85 +460,55 @@ window.UIComponents = {
         ];
     },
 
-    // Return { bg, text } colors for a metadata field value — same rules as side panel
+    // Return { bg, text } colors for a metadata field value
     getMetadataColor(field, value) {
         if (!value) return { bg: 'white', text: '#333' };
 
-        if (field === 'year') {
-            const m = value.toString().match(/\d{4}/);
+        if (field === 'distance_beach') {
+            const m = value.toString().replace(',', '.').match(/[\d.]+/);
             if (m) {
-                const y = parseInt(m[0]);
-                if (y >= 2024) return { bg: '#1B5E20', text: '#FFFFFF' };
-                if (y >= 2023) return { bg: '#388E3C', text: '#FFFFFF' };
-                if (y >= 2022) return { bg: '#4CAF50', text: '#FFFFFF' };
-                if (y >= 2021) return { bg: '#7CB342', text: '#FFFFFF' };
-                if (y >= 2020) return { bg: '#E8F5E9', text: '#1b5e20' };
-                if (y >= 2015) return { bg: '#f5f5f5', text: '#666' };
-                if (y >= 2010) return { bg: '#FFF9C4', text: '#F57F17' };
+                const km = parseFloat(m[0]);
+                if (km <= 0.3) return { bg: '#1B5E20', text: '#FFFFFF' };
+                if (km <= 0.7) return { bg: '#388E3C', text: '#FFFFFF' };
+                if (km <= 1.5) return { bg: '#4CAF50', text: '#FFFFFF' };
+                if (km <= 3)   return { bg: '#E8F5E9', text: '#1b5e20' };
+                if (km <= 7)   return { bg: '#FFF9C4', text: '#F57F17' };
                 return { bg: '#FFCDD2', text: '#C62828' };
             }
-            return { bg: 'white', text: '#333' };
         }
 
-        if (field === 'mileage') {
-            const m = value.toString().match(/(\d+)/);
+        if (field === 'distance_airport') {
+            const m = value.toString().replace(',', '.').match(/[\d.]+/);
             if (m) {
-                const km = parseInt(m[1]);
-                if (km <= 50000)  return { bg: '#1B5E20', text: '#FFFFFF' };
-                if (km <= 80000)  return { bg: '#388E3C', text: '#FFFFFF' };
-                if (km <= 100000) return { bg: '#4CAF50', text: '#FFFFFF' };
-                if (km <= 120000) return { bg: '#7CB342', text: '#FFFFFF' };
-                if (km <= 140000) return { bg: '#E8F5E9', text: '#1b5e20' };
-                if (km <= 160000) return { bg: '#FFF9C4', text: '#F57F17' };
-                if (km <= 180000) return { bg: '#FFD54F', text: '#E65100' };
-                if (km <= 200000) return { bg: '#FFB74D', text: '#E65100' };
+                const km = parseFloat(m[0]);
+                if (km <= 10)  return { bg: '#1B5E20', text: '#FFFFFF' };
+                if (km <= 20)  return { bg: '#4CAF50', text: '#FFFFFF' };
+                if (km <= 35)  return { bg: '#E8F5E9', text: '#1b5e20' };
+                if (km <= 50)  return { bg: '#FFF9C4', text: '#F57F17' };
                 return { bg: '#FFCDD2', text: '#C62828' };
             }
-            return { bg: 'white', text: '#333' };
         }
 
-        if (field === 'price' || field === 'price_eur') {
-            const clean = value.toString().replace(/\s+/g, '').replace(/,/g, '');
-            const m = clean.match(/\d+/);
+        if (field === 'site_rating') {
+            const m = value.toString().replace(',', '.').match(/[\d.]+/);
             if (m) {
-                const p = parseInt(m[0]);
-                if (field === 'price_eur') {
-                    if (p <= 17000) return { bg: '#1B5E20', text: '#FFFFFF' };
-                    if (p <= 18000) return { bg: '#388E3C', text: '#FFFFFF' };
-                    if (p <= 19000) return { bg: '#4CAF50', text: '#FFFFFF' };
-                    if (p <= 20000) return { bg: '#E8F5E9', text: '#1b5e20' };
-                    if (p <= 21000) return { bg: '#FFF9C4', text: '#F57F17' };
-                    if (p <= 22000) return { bg: '#FFB74D', text: '#E65100' };
-                    return { bg: '#FFCDD2', text: '#C62828' };
-                } else {
-                    if (p <= 72000) return { bg: '#1B5E20', text: '#FFFFFF' };
-                    if (p <= 77000) return { bg: '#388E3C', text: '#FFFFFF' };
-                    if (p <= 81000) return { bg: '#4CAF50', text: '#FFFFFF' };
-                    if (p <= 85000) return { bg: '#E8F5E9', text: '#1b5e20' };
-                    if (p <= 89000) return { bg: '#FFF9C4', text: '#F57F17' };
-                    if (p <= 94000) return { bg: '#FFB74D', text: '#E65100' };
-                    return { bg: '#FFCDD2', text: '#C62828' };
-                }
+                const r = parseFloat(m[0]);
+                if (r >= 9)    return { bg: '#1B5E20', text: '#FFFFFF' };
+                if (r >= 8.5)  return { bg: '#388E3C', text: '#FFFFFF' };
+                if (r >= 8)    return { bg: '#4CAF50', text: '#FFFFFF' };
+                if (r >= 7)    return { bg: '#E8F5E9', text: '#1b5e20' };
+                if (r >= 6)    return { bg: '#FFF9C4', text: '#F57F17' };
+                return { bg: '#FFCDD2', text: '#C62828' };
             }
-            return { bg: 'white', text: '#333' };
         }
 
-        if (field === 'seat_type') {
-            if (value === 'Alcantara' || value === 'Leather') return { bg: '#E8F5E9', text: '#1b5e20' };
-            if (value === 'Cloth' || value === 'Fabric')      return { bg: '#FFEBEE', text: '#c62828' };
-            return { bg: '#FFF9C4', text: '#F57F17' };
-        }
-
-        if (field === 'owners') {
-            return value === '1'
-                ? { bg: '#E8F5E9', text: '#1b5e20' }
-                : { bg: '#FFEBEE', text: '#c62828' };
-        }
-
-        if (field === 'tow_hitch_type') {
-            if (value === 'Swiveling') return { bg: '#C8E6C9', text: '#1b5e20' };
-            if (value === 'No')        return { bg: '#FFEBEE', text: '#c62828' };
-            return { bg: '#FFF9C4', text: '#F57F17' };
+        if (field === 'bedrooms' || field === 'beds') {
+            const m = value.toString().match(/\d+/);
+            if (m) {
+                const n = parseInt(m[0]);
+                if (n >= 3) return { bg: '#1B5E20', text: '#FFFFFF' };
+                if (n >= 2) return { bg: '#4CAF50', text: '#FFFFFF' };
+            }
         }
 
         return { bg: 'white', text: '#333' };

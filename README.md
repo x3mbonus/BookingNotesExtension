@@ -1,6 +1,6 @@
-# Car Notes Extension
+# Stay Notes Extension
 
-A Chrome extension that adds a notes panel to car listings on [otomoto.pl](https://otomoto.pl) and [mobile.de](https://mobile.de). Track notes, ratings, features (ACC, CarPlay, camera, etc.), and compare cars across listings.
+A Chrome extension that adds a notes panel to accommodation listings on [booking.com](https://booking.com) and [airbnb.com](https://airbnb.com). Track notes, ratings, amenities (pool, beach distance, parking, AC, etc.), and compare properties side by side.
 
 Data is stored in your own [Supabase](https://supabase.com) project — free tier is enough.
 
@@ -22,7 +22,7 @@ Go to [supabase.com](https://supabase.com), sign up (free), and create a new pro
 
 In your Supabase project, open **SQL Editor → New Query**, paste the contents of [`sql/SCHEMA.sql`](sql/SCHEMA.sql), and click **Run**.
 
-This creates three tables (`car_data`, `features_config`, `car_features`) and seeds the 26 features. Safe to run multiple times.
+This creates three tables (`stay_property_data`, `stay_features_config`, `stay_property_features`) and seeds 15 accommodation amenities. Safe to run multiple times.
 
 ### 3. Enter your credentials
 
@@ -30,23 +30,25 @@ This creates three tables (`car_data`, `features_config`, `car_features`) and se
 2. Paste your **Project URL** and **anon public key** from Supabase → Settings → API
 3. Click **Save & Test** — you should see "Connected"
 
-That's it. Open any car listing on otomoto.pl or mobile.de — the notes panel appears automatically.
+That's it. Open any property on booking.com or airbnb.com — the notes panel appears automatically.
 
 ## Usage
 
 | Action | Behavior |
 |--------|----------|
 | Type in the note field | Auto-saves after 500ms |
-| Click a feature button (ACC, CarPlay…) | Cycles ✓ / ? / ✗, saves instantly |
-| Click a rating (Best/Good/Fair/Poor) | Saves instantly |
+| Click an amenity button (Pool, AC, WiFi…) | Cycles ✓ / ? / ✗, saves instantly |
+| Click a rating (Best / Good / Fair / Poor) | Saves instantly |
 | Click **Verified** | Toggles confirmed status |
-| Click **Compare** | Opens side-by-side comparison of saved cars |
+| Click **Compare** | Opens side-by-side comparison of saved properties |
+
+## Tracked amenities
+
+Pool, beach front, sea view, parking, AC, WiFi, kitchen, washing machine, dishwasher, balcony, jacuzzi, gym, breakfast, elevator, pets allowed.
+
+Manual fields: distance from beach (km), distance from airport (km), bedrooms, beds.
 
 ## Supported sites
 
-- [otomoto.pl](https://otomoto.pl) — listing pages and search results
-- [mobile.de](https://mobile.de) — listing pages and search results
-
-## Adding new features to the list
-
-See [docs/MIGRATION.md](docs/MIGRATION.md).
+- [booking.com](https://booking.com) — property pages and search results
+- [airbnb.com](https://airbnb.com) — property pages and search results

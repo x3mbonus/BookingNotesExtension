@@ -16,9 +16,9 @@ window.NoteCallbacks = {
     /**
      * Save features immediately to database
      */
-    async saveFeatures(carId, features, sort = null, confirmed = false) {
-        console.log('[NoteCallbacks.saveFeatures] Saving', Object.keys(features).length, 'features for', carId, 'confirmed:', confirmed);
-        return await window.FeaturesManager?.confirmAllFeatures?.(carId, features, sort, confirmed);
+    async saveFeatures(propertyId, features, sort = null, confirmed = false) {
+        console.log('[NoteCallbacks.saveFeatures] Saving', Object.keys(features).length, 'features for', propertyId, 'confirmed:', confirmed);
+        return await window.FeaturesManager?.confirmAllFeatures?.(propertyId, features, sort, confirmed);
     },
 
     /**
@@ -73,11 +73,11 @@ window.NoteCallbacks = {
     },
 
     /**
-     * Update sold status (independent operation)
+     * Update unavailable status (independent operation)
      */
-    async updateSold(carId, sold) {
-        console.log('[NoteCallbacks.updateSold] Updating sold to', sold, 'for', carId);
-        return await window.SupabaseApi?.updateSold?.(carId, sold) || { success: true };
+    async updateUnavailable(propertyId, unavailable) {
+        console.log('[NoteCallbacks.updateUnavailable] Updating unavailable to', unavailable, 'for', propertyId);
+        return await window.SupabaseApi?.updateUnavailable?.(propertyId, unavailable) || { success: true };
     },
 
     /**
@@ -97,20 +97,19 @@ window.NoteCallbacks = {
     /**
      * Update single feature (independent operation)
      */
-    async updateFeature(carId, featureKey, state) {
+    async updateFeature(propertyId, featureKey, state) {
         if (!window.SupabaseApi) {
             console.error('[NoteCallbacks.updateFeature] ❌ window.SupabaseApi is NOT initialized!');
             return { success: false, error: 'SupabaseApi not initialized' };
         }
 
-        if (typeof window.SupabaseApi.updateCarFeature !== 'function') {
-            console.error('[NoteCallbacks.updateFeature] ❌ updateCarFeature is not a function!', typeof window.SupabaseApi.updateCarFeature);
-            return { success: false, error: 'updateCarFeature not found' };
+        if (typeof window.SupabaseApi.updatePropertyFeature !== 'function') {
+            console.error('[NoteCallbacks.updateFeature] ❌ updatePropertyFeature is not a function!');
+            return { success: false, error: 'updatePropertyFeature not found' };
         }
 
         try {
-            const result = await window.SupabaseApi.updateCarFeature(carId, featureKey, state);
-            return result;
+            return await window.SupabaseApi.updatePropertyFeature(propertyId, featureKey, state);
         } catch (error) {
             console.error('[NoteCallbacks.updateFeature] ❌ Exception:', error);
             return { success: false, error: error.message };
@@ -118,11 +117,11 @@ window.NoteCallbacks = {
     },
 
     /**
-     * Delete car record and all related data
+     * Delete property record and all related data
      */
-    async deleteCarData(carId) {
-        console.log('[NoteCallbacks.deleteCarData] Deleting car', carId);
-        return await window.SupabaseApi?.deleteCarData?.(carId) || { success: true };
+    async deletePropertyData(propertyId) {
+        console.log('[NoteCallbacks.deletePropertyData] Deleting property', propertyId);
+        return await window.SupabaseApi?.deletePropertyData?.(propertyId) || { success: true };
     },
 
     /**
