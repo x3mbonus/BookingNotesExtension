@@ -79,10 +79,10 @@ window.CompareTable = {
         }, 0, false);
 
         // Accommodation metadata rows
-        this._addCompareRow(tbody, 'Booking ціна/ніч', propList,
+        this._addCompareRow(tbody, 'Ціна Booking', propList,
             (prop) => prop.metadata?.price_booking || '—', 0, false,
             (prop) => window.UIComponents?.getMetadataColor?.('price_booking', prop.metadata?.price_booking));
-        this._addCompareRow(tbody, 'Airbnb ціна/ніч', propList,
+        this._addCompareRow(tbody, 'Ціна Airbnb', propList,
             (prop) => prop.metadata?.price_airbnb || '—', 0, false,
             (prop) => window.UIComponents?.getMetadataColor?.('price_airbnb', prop.metadata?.price_airbnb));
         this._addCompareRow(tbody, 'Тип об\'єкту', propList,

@@ -262,8 +262,8 @@ window.UIComponents = {
         const metadataFields = [
             { label: 'Назва',              key: 'name',                type: 'text',   placeholder: 'Назва об\'єкту' },
             { label: 'Тип об\'єкту',       key: 'property_type',       type: 'text',   placeholder: 'будинок, квартира, готель...' },
-            { label: 'Ціна Booking/ніч',   key: 'price_booking',       type: 'text',   placeholder: 'e.g., €85' },
-            { label: 'Ціна Airbnb/ніч',    key: 'price_airbnb',        type: 'text',   placeholder: 'e.g., €90' },
+            { label: 'Ціна Booking',       key: 'price_booking',       type: 'text',   placeholder: 'e.g., €1 200' },
+            { label: 'Ціна Airbnb',        key: 'price_airbnb',        type: 'text',   placeholder: 'e.g., €1 300' },
             { label: 'Локація',            key: 'location',            type: 'text',   placeholder: 'Місто, район' },
             { label: 'Рейтинг сайту',      key: 'site_rating',         type: 'text',   placeholder: 'e.g., 8.5' },
             { label: 'Спалень',            key: 'bedrooms_count',      type: 'text',   placeholder: 'Кількість спалень' },

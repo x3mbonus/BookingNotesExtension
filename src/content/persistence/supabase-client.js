@@ -317,6 +317,7 @@ window.SupabaseApi = {
                 ...(metadata.cancellation_policy  && { cancellation_policy: metadata.cancellation_policy }),
                 ...(metadata.url                  && { url: metadata.url }),
                 ...(metadata.unavailable !== undefined && { unavailable: metadata.unavailable }),
+                ...(metadata.trip !== undefined && metadata.trip !== null && { trip: metadata.trip }),
                 updated_at: now
             };
 
@@ -362,6 +363,7 @@ window.SupabaseApi = {
                 cancellation_policy: metadata.cancellation_policy || null,
                 url: metadata.url || null,
                 unavailable: metadata.unavailable || false,
+                trip: metadata.trip || null,
                 created_at: now,
                 updated_at: now
             };
@@ -400,7 +402,7 @@ window.SupabaseApi = {
     },
 
     // Upsert note text + color
-    async upsertNoteText(propertyId, text, color) {
+    async upsertNoteText(propertyId, text, color, trip = null) {
         if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
@@ -431,6 +433,7 @@ window.SupabaseApi = {
                     color: color || '#e0e0e0',
                     sort: null,
                     confirmed: false,
+                    trip: trip || null,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 })
@@ -442,7 +445,7 @@ window.SupabaseApi = {
     },
 
     // Upsert note text + color + sort in one request
-    async upsertNoteTextWithSort(propertyId, text, color, sort) {
+    async upsertNoteTextWithSort(propertyId, text, color, sort, trip = null) {
         if (!await window.SupabaseClient.isReady()) return { success: false };
 
         try {
@@ -479,6 +482,7 @@ window.SupabaseApi = {
                     color: color || '#e0e0e0',
                     sort: sort === undefined ? null : sort,
                     confirmed: false,
+                    trip: trip || null,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 })
@@ -652,8 +656,11 @@ window.SupabaseApi = {
             const existing = await checkResponse.json();
 
             if (!existing || existing.length === 0) {
+                const trip = await new Promise(resolve =>
+                    chrome.storage.local.get(['currentTrip'], r => resolve(r.currentTrip || null))
+                );
                 const createUrl = `${window.SupabaseClient.url}/rest/v1/${TABLE_PROPERTY_DATA}`;
-                await fetch(createUrl, {
+                const createResponse = await fetch(createUrl, {
                     method: 'POST',
                     headers: { 'apikey': window.SupabaseClient.key, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -662,10 +669,15 @@ window.SupabaseApi = {
                         color: '#e0e0e0',
                         sort: null,
                         confirmed: false,
+                        trip: trip,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     })
                 });
+                if (!createResponse.ok) {
+                    const errText = await createResponse.text();
+                    throw new Error(`Property record creation failed: ${createResponse.status} ${errText}`);
+                }
             }
 
             const featureConfig = await window.FeaturesManager?.getFeatureConfig?.() || await this.getFeatureConfig();

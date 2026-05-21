@@ -6,8 +6,12 @@ const queriedPropertyIds = new Set(); // Track which property IDs we've already 
 const notesCache = {}; // Cache fetched notes to avoid re-querying on reinit
 let initializeTimer = null; // Debounce timer
 
-// Initialize Supabase client immediately
+// Initialize Supabase client immediately (skip if extension is disabled)
 (async () => {
+    const enabled = await new Promise(resolve =>
+        chrome.storage.local.get(['extensionEnabled'], r => resolve(r.extensionEnabled !== false))
+    );
+    if (!enabled) return;
     if (window.SupabaseClient) {
         await window.SupabaseClient.init();
     }
@@ -29,6 +33,11 @@ const observer = new MutationObserver(() => {
 let currentModal = null;
 
 async function initializeContentScript() {
+    const enabled = await new Promise(resolve =>
+        chrome.storage.local.get(['extensionEnabled'], r => resolve(r.extensionEnabled !== false))
+    );
+    if (!enabled) return;
+
     const hostname = window.location.hostname;
     const pathname = window.location.pathname;
     const search = window.location.search;

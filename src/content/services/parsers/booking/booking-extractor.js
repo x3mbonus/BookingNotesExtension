@@ -28,8 +28,32 @@ window.BookingExtractor = {
     },
 
     _extractPrice() {
-        return document.querySelector('[data-testid="price-and-discounted-price"]')?.textContent?.trim() ||
-               document.querySelector('[data-testid="price-for-x-nights"]')?.textContent?.trim() || '';
+        // Prefer total-stay price over per-night price
+        const selectors = [
+            '[data-testid="price-for-x-nights"]',
+            '[data-testid="price-and-discounted-price"]',
+            '[data-testid="deal-box-price"]',
+            '.prco-valign-middle-helper',
+        ];
+        for (const sel of selectors) {
+            const text = document.querySelector(sel)?.textContent?.trim();
+            if (text) return this._cleanPrice(text);
+        }
+        return '';
+    },
+
+    _cleanPrice(raw) {
+        return raw
+            .replace(/for\s+\d+\s+nights?/gi, '')
+            .replace(/за\s+\d+\s+ноч\S*/gi, '')
+            .replace(/\d+\s+ноч\S*/gi, '')
+            .replace(/per\s+night/gi, '')
+            .replace(/\/\s*night/gi, '')
+            .replace(/за\s*ніч/gi, '')
+            .replace(/taxes?\s+and\s+fees?\s+included/gi, '')
+            .replace(/,?\s*включно\s+з\s+\S+/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
     },
 
     _extractLocation() {

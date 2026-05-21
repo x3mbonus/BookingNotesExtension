@@ -13,6 +13,12 @@ window.ComparePanel = {
         let maxProperties = 15;
         let includeSold = false;
 
+        const activeTrip = await new Promise(resolve =>
+            chrome.storage.local.get(['currentTrip'], r => resolve(r.currentTrip || null))
+        );
+        // Default: filter to current trip if one is set, otherwise show all
+        let tripFilter = activeTrip;
+
         // Create modal
         const modal = document.createElement('div');
         modal.className = 'compare-modal';
@@ -190,6 +196,51 @@ window.ComparePanel = {
         soldLabel.appendChild(document.createTextNode('🚫 Include Unavailable'));
         filterSection.appendChild(soldLabel);
 
+        // Trip filter row
+        if (activeTrip) {
+            const tripRow = document.createElement('div');
+            tripRow.style.cssText = `
+                width: 100%;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding-top: 8px;
+                border-top: 1px solid #e8e8e8;
+                flex-wrap: wrap;
+            `;
+
+            const tripRowLabel = document.createElement('span');
+            tripRowLabel.textContent = 'Trip:';
+            tripRowLabel.style.cssText = 'font-weight: bold; font-size: 12px;';
+            tripRow.appendChild(tripRowLabel);
+
+            const makeTrip = (label, value, checked) => {
+                const lbl = document.createElement('label');
+                lbl.style.cssText = `
+                    display: flex; align-items: center; gap: 4px;
+                    cursor: pointer; font-size: 12px;
+                    padding: 4px 8px; border-radius: 4px;
+                    background: ${value === null ? '#f0f0f0' : '#e8eaf6'};
+                `;
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'tripFilter';
+                radio.value = value === null ? '__all__' : value;
+                radio.checked = checked;
+                radio.onchange = () => {
+                    tripFilter = value;
+                    updateTable();
+                };
+                lbl.appendChild(radio);
+                lbl.appendChild(document.createTextNode(label));
+                return lbl;
+            };
+
+            tripRow.appendChild(makeTrip('All trips', null, tripFilter === null));
+            tripRow.appendChild(makeTrip(`✈ ${activeTrip}`, activeTrip, tripFilter === activeTrip));
+            filterSection.appendChild(tripRow);
+        }
+
         // Body
         const body = document.createElement('div');
         body.style.cssText = `
@@ -208,7 +259,8 @@ window.ComparePanel = {
                     maxProperties,
                     currentPropertyId,
                     currentPropertySort,
-                    includeSold
+                    includeSold,
+                    tripFilter
                 );
 
                 if (props.length === 0) {
@@ -264,7 +316,7 @@ window.ComparePanel = {
      * Current property without rating appears first
      * Features are fetched ONLY for the properties that will be displayed (after filter + limit).
      */
-    async _fetchAndSortProps(selectedRatings, maxProperties, currentPropertyId, currentPropertySort, includeSold = false) {
+    async _fetchAndSortProps(selectedRatings, maxProperties, currentPropertyId, currentPropertySort, includeSold = false, tripFilter = null) {
         try {
             // STEP 1: Get all properties (metadata only — no features yet)
             const props = await window.SupabaseApi?.getAllProperties?.() || [];
@@ -275,6 +327,7 @@ window.ComparePanel = {
                 propertyId: prop.property_id,
                 isCurrentProperty: prop.property_id === currentPropertyId,
                 sold: prop.unavailable || false,
+                trip: prop.trip || null,
                 note: prop.text || '',
                 features: {},
                 metadata: {
@@ -302,13 +355,15 @@ window.ComparePanel = {
             const currentProp = props.find(p => p.property_id === currentPropertyId);
             const otherProps  = props.filter(p => p.property_id !== currentPropertyId);
 
-            // STEP 3: Filter by rating + unavailable, sort, then limit
+            // STEP 3: Filter by rating + unavailable + trip, sort, then limit
             const ratingOrder = [0, 1, 2, 3, -1];
             const filteredProps = otherProps
                 .filter(p => {
                     if (!includeSold && p.unavailable) return false;
                     const rating = p.sort === null ? 'null' : p.sort;
-                    return selectedRatings.includes(rating);
+                    if (!selectedRatings.includes(rating)) return false;
+                    if (tripFilter !== null && (p.trip || null) !== tripFilter) return false;
+                    return true;
                 })
                 .sort((a, b) => {
                     const aSort = a.sort, bSort = b.sort;

@@ -87,6 +87,9 @@ CREATE TABLE public.stay_property_data (
   -- Cancellation: 'free' or a deadline date string
   cancellation_policy  text       NULL,
 
+  -- Trip / search group (set from popup when saving a new note)
+  trip                 text       NULL,
+
   -- Stay dates
   date_from            text       NULL,
   date_to              text       NULL,
@@ -150,6 +153,12 @@ INSERT INTO public.stay_features_config (id, key, label, priority, sort, cool_pr
   (14, 'feature_breakfast',       'Сніданок',        1, 13, NULL);
 
 SELECT setval('public.stay_features_config_id_seq', (SELECT MAX(id) FROM public.stay_features_config));
+
+
+-- ------------------------------------------------------------
+-- Migration for existing databases (run in Supabase SQL Editor):
+--   ALTER TABLE public.stay_property_data ADD COLUMN IF NOT EXISTS trip text NULL;
+-- ------------------------------------------------------------
 
 
 -- ------------------------------------------------------------

@@ -3,6 +3,12 @@
  * Provides consistent behavior across both UI contexts
  */
 
+async function _getCurrentTrip() {
+    return new Promise(resolve =>
+        chrome.storage.local.get(['currentTrip'], r => resolve(r.currentTrip || null))
+    );
+}
+
 window.NoteCallbacks = {
     /**
      * Toggle feature state: ? → ✓ → ✗ → ?
@@ -44,7 +50,8 @@ window.NoteCallbacks = {
      */
     async upsertNote(propertyId, noteData) {
         console.log('[NoteCallbacks.upsertNote] Upserting note text/color for', propertyId);
-        return await window.SupabaseApi?.upsertNoteText?.(propertyId, noteData.text, noteData.color) || { success: true };
+        const trip = await _getCurrentTrip();
+        return await window.SupabaseApi?.upsertNoteText?.(propertyId, noteData.text, noteData.color, trip) || { success: true };
     },
 
     /**
@@ -53,7 +60,8 @@ window.NoteCallbacks = {
      */
     async upsertNoteWithSort(propertyId, noteData) {
         console.log('[NoteCallbacks.upsertNoteWithSort] Upserting note with text/color/sort for', propertyId);
-        return await window.SupabaseApi?.upsertNoteTextWithSort?.(propertyId, noteData.text, noteData.color, noteData.sort) || { success: true };
+        const trip = await _getCurrentTrip();
+        return await window.SupabaseApi?.upsertNoteTextWithSort?.(propertyId, noteData.text, noteData.color, noteData.sort, trip) || { success: true };
     },
 
     /**
