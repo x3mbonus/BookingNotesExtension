@@ -1,6 +1,6 @@
 /**
  * Metadata Parsing Utilities
- * Handles extraction and conversion of metadata from parsed car data
+ * Handles extraction and conversion of metadata from parsed property data
  */
 
 window.MetadataParser = {
@@ -16,7 +16,7 @@ window.MetadataParser = {
     },
 
     /**
-     * Extract metadata from parsed car data
+     * Extract metadata from parsed property data
      * Returns object with make, model, price, price_eur, mileage, year, address, url
      */
     extractMetadata(extractedData) {

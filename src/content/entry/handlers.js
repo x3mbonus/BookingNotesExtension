@@ -6,32 +6,32 @@ window.ListingHandler = {
      */
     async processListingsCommon(articles, extractIdFn, isSkippedFn = null) {
         const isCacheEmpty = Object.keys(notesCache).length === 0;
-        const carIds = [];
+        const propertyIds = [];
 
-        // Collect car IDs
+        // Collect property IDs
         articles.forEach(article => {
             // Skip if needed (for platform-specific filtering)
             if (isSkippedFn && isSkippedFn(article)) {
                 return;
             }
 
-            const carId = extractIdFn(article);
-            if (carId && carId.trim() && (!queriedPropertyIds.has(carId) || (isCacheEmpty && queriedPropertyIds.size > 0))) {
-                carIds.push(carId);
-                if (!queriedPropertyIds.has(carId)) {
-                    queriedPropertyIds.add(carId);
+            const propertyId = extractIdFn(article);
+            if (propertyId && propertyId.trim() && (!queriedPropertyIds.has(propertyId) || (isCacheEmpty && queriedPropertyIds.size > 0))) {
+                propertyIds.push(propertyId);
+                if (!queriedPropertyIds.has(propertyId)) {
+                    queriedPropertyIds.add(propertyId);
                 }
             }
         });
 
         // Fetch notes from DB in one query
         let dbNotes = {};
-        if (carIds.length > 0 && typeof window.SupabaseApi !== 'undefined') {
-            dbNotes = await window.SupabaseApi.getDataByIds(carIds) || {};
+        if (propertyIds.length > 0 && typeof window.SupabaseApi !== 'undefined') {
+            dbNotes = await window.SupabaseApi.getDataByIds(propertyIds) || {};
             Object.assign(notesCache, dbNotes);
         }
 
-        return { articles, carIds, dbNotes, extractIdFn, isSkippedFn };
+        return { articles, propertyIds, dbNotes, extractIdFn, isSkippedFn };
     },
 
     /**
@@ -52,11 +52,11 @@ window.ListingHandler = {
             const hasNoteDisplay = existingDisplay && existingDisplay.classList.contains('property-note-display');
 
             if (!hasNoteDisplay) {
-                const carId = extractIdFn(article);
-                if (carId && carId.trim()) {
+                const propertyId = extractIdFn(article);
+                if (propertyId && propertyId.trim()) {
                     processedArticles.add(article);
-                    const note = notesCache[carId] !== undefined ? notesCache[carId] : (dbNotes[carId] || null);
-                    addNoteButton(article, carId, note);
+                    const note = notesCache[propertyId] !== undefined ? notesCache[propertyId] : (dbNotes[propertyId] || null);
+                    addNoteButton(article, propertyId, note);
                 } else {
                     processedArticles.add(article);
                 }
@@ -71,8 +71,8 @@ window.ListingHandler = {
      */
     cleanupOrphanedDisplays(currentArticleIds) {
         document.querySelectorAll('.property-note-display').forEach(noteDisplay => {
-            const carId = noteDisplay.getAttribute('data-car-id');
-            if (!currentArticleIds.has(carId)) {
+            const propertyId = noteDisplay.getAttribute('data-property-id');
+            if (!currentArticleIds.has(propertyId)) {
                 noteDisplay.remove();
             }
         });

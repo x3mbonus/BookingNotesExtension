@@ -1,16 +1,16 @@
 /**
- * Compare Panel - Full UI for comparing selected cars
- * Shows cars filtered by rating with sorting and limits
+ * Compare Panel - Full UI for comparing selected properties
+ * Shows properties filtered by rating with sorting and limits
  */
 
 window.ComparePanel = {
     /**
      * Show comparison modal with filtering options
      */
-    async showCompareModal(currentCarSort = null, currentCarId = null) {
+    async showCompareModal(currentPropertySort = null, currentPropertyId = null) {
         // Default filter: show sort 0 and 1, exclude sold
         let selectedRatings = [0, 1];
-        let maxCars = 15;
+        let maxProperties = 15;
         let includeSold = false;
 
         // Create modal
@@ -140,14 +140,14 @@ window.ComparePanel = {
             filterSection.appendChild(checkboxContainer);
         });
 
-        // Max cars input
+        // Max properties input
         const maxLabel = document.createElement('label');
         maxLabel.style.cssText = 'font-weight: bold; font-size: 12px; margin-left: auto;';
-        maxLabel.textContent = 'Max cars: ';
+        maxLabel.textContent = 'Limit: ';
 
         const maxInput = document.createElement('input');
         maxInput.type = 'number';
-        maxInput.value = maxCars;
+        maxInput.value = maxProperties;
         maxInput.min = 1;
         maxInput.max = 200;
         maxInput.style.cssText = `
@@ -158,7 +158,7 @@ window.ComparePanel = {
             font-size: 12px;
         `;
         maxInput.onchange = () => {
-            maxCars = parseInt(maxInput.value) || 10;
+            maxProperties = parseInt(maxInput.value) || 10;
             updateTable();
         };
 
@@ -203,20 +203,20 @@ window.ComparePanel = {
         const updateTable = async () => {
             body.innerHTML = '<p style="text-align: center; color: #999;">Loading...</p>';
             try {
-                const cars = await this._fetchAndSortCars(
+                const props = await this._fetchAndSortProps(
                     selectedRatings,
-                    maxCars,
-                    currentCarId,
-                    currentCarSort,
+                    maxProperties,
+                    currentPropertyId,
+                    currentPropertySort,
                     includeSold
                 );
 
-                if (cars.length === 0) {
+                if (props.length === 0) {
                     body.innerHTML = '<p style="text-align: center; color: #999;">No properties to compare</p>';
                 } else {
                     body.innerHTML = ''; // Clear loading message
                     const allFeatures = await window.FeaturesManager?.getFullFeaturesConfig?.() || [];
-                    const table = window.CompareTable.createCompareTable(cars, allFeatures);
+                    const table = window.CompareTable.createCompareTable(props, allFeatures);
                     body.appendChild(table);
 
                     // Info footer
@@ -238,7 +238,7 @@ window.ComparePanel = {
                 }
             } catch (error) {
                 console.error('[STAY-NOTES] Error loading comparison:', error);
-                body.innerHTML = '<p style="color: red;">Error loading cars. Please try again.</p>';
+                body.innerHTML = '<p style="color: red;">Error loading properties. Please try again.</p>';
             }
         };
 
@@ -260,20 +260,20 @@ window.ComparePanel = {
     },
 
     /**
-     * Fetch and sort cars by rating (0, 1, 2, 3, -1) then by price
-     * Current car without rating appears first
-     * Features are fetched ONLY for the cars that will be displayed (after filter + limit).
+     * Fetch and sort properties by rating (0, 1, 2, 3, -1) then by price
+     * Current property without rating appears first
+     * Features are fetched ONLY for the properties that will be displayed (after filter + limit).
      */
-    async _fetchAndSortCars(selectedRatings, maxCars, currentCarId, currentCarSort, includeSold = false) {
+    async _fetchAndSortProps(selectedRatings, maxProperties, currentPropertyId, currentPropertySort, includeSold = false) {
         try {
             // STEP 1: Get all properties (metadata only — no features yet)
-            const cars = await window.SupabaseApi?.getAllProperties?.() || [];
-            if (cars.length === 0) return [];
+            const props = await window.SupabaseApi?.getAllProperties?.() || [];
+            if (props.length === 0) return [];
 
             // STEP 2: Map to lightweight objects (no features)
-            const toCarObj = (prop) => ({
-                carId: prop.property_id,
-                isCurrentCar: prop.property_id === currentCarId,
+            const toPropObj = (prop) => ({
+                propertyId: prop.property_id,
+                isCurrentProperty: prop.property_id === currentPropertyId,
                 sold: prop.unavailable || false,
                 note: prop.text || '',
                 features: {},
@@ -281,27 +281,33 @@ window.ComparePanel = {
                     name: prop.name,
                     url: prop.url || '',
                     location: prop.location || '',
-                    price: parseFloat((prop.price_per_night || '0').toString().replace(/[^\d.]/g, '')) || 0,
-                    price_per_night: prop.price_per_night,
+                    price: parseFloat(((prop.price_booking || prop.price_airbnb || '0')).toString().replace(/[^\d.]/g, '')) || 0,
+                    price_booking: prop.price_booking,
+                    price_airbnb: prop.price_airbnb,
                     site_rating: prop.site_rating,
-                    bedrooms: prop.bedrooms,
-                    beds: prop.beds,
-                    distance_beach: prop.distance_beach,
-                    distance_airport: prop.distance_airport,
+                    property_type: prop.property_type,
+                    bedrooms_count: prop.bedrooms_count,
+                    sleeping_places: prop.sleeping_places,
+                    bathrooms_count: prop.bathrooms_count,
+                    toilets_count: prop.toilets_count,
+                    toilet_inside: prop.toilet_inside,
+                    heating_type: prop.heating_type,
+                    last_review_date: prop.last_review_date,
+                    cancellation_policy: prop.cancellation_policy,
                     sort: prop.sort,
                     photo_url: prop.photo_url || ''
                 }
             });
 
-            const currentCar = cars.find(c => c.property_id === currentCarId);
-            const otherCars  = cars.filter(c => c.property_id !== currentCarId);
+            const currentProp = props.find(p => p.property_id === currentPropertyId);
+            const otherProps  = props.filter(p => p.property_id !== currentPropertyId);
 
             // STEP 3: Filter by rating + unavailable, sort, then limit
             const ratingOrder = [0, 1, 2, 3, -1];
-            const filteredCars = otherCars
-                .filter(c => {
-                    if (!includeSold && c.unavailable) return false;
-                    const rating = c.sort === null ? 'null' : c.sort;
+            const filteredProps = otherProps
+                .filter(p => {
+                    if (!includeSold && p.unavailable) return false;
+                    const rating = p.sort === null ? 'null' : p.sort;
                     return selectedRatings.includes(rating);
                 })
                 .sort((a, b) => {
@@ -312,53 +318,53 @@ window.ComparePanel = {
                     return ratingOrder.indexOf(aSort) - ratingOrder.indexOf(bSort);
                 });
 
-            // STEP 4: Apply maxCars limit BEFORE fetching features
-            const limitedOthers = filteredCars.slice(0, currentCar ? maxCars - 1 : maxCars);
-            const visibleCars   = [...(currentCar ? [currentCar] : []), ...limitedOthers];
+            // STEP 4: Apply limit BEFORE fetching features
+            const limitedOthers = filteredProps.slice(0, currentProp ? maxProperties - 1 : maxProperties);
+            const visibleProps  = [...(currentProp ? [currentProp] : []), ...limitedOthers];
 
-            // STEP 5: Fetch features only for the cars we will display
-            const featuresMap = await this._fetchAllCarFeatures(visibleCars.map(c => c.property_id));
+            // STEP 5: Fetch features only for the properties we will display
+            const featuresMap = await this._fetchAllFeatures(visibleProps.map(p => p.property_id));
 
             // STEP 6: Assemble final list with features
-            const result = visibleCars.map(car => {
-                const obj = toCarObj(car);
-                obj.features = featuresMap[car.property_id] || {};
+            const result = visibleProps.map(prop => {
+                const obj = toPropObj(prop);
+                obj.features = featuresMap[prop.property_id] || {};
                 return obj;
             });
 
             return result;
         } catch (error) {
-            console.error('[STAY-NOTES] Error fetching cars:', error);
+            console.error('[STAY-NOTES] Error fetching properties:', error);
             return [];
         }
     },
 
     /**
      * Fetch features for all given property IDs in parallel.
-     * @param {Array} carIds - Array of car IDs to fetch features for
-     * @returns {Object} Map of { carId: { featureKey: state } }
+     * @param {Array} propertyIds - Array of property IDs to fetch features for
+     * @returns {Object} Map of { propertyId: { featureKey: state } }
      */
-    async _fetchAllCarFeatures(carIds) {
-        if (!carIds || carIds.length === 0) return {};
+    async _fetchAllFeatures(propertyIds) {
+        if (!propertyIds || propertyIds.length === 0) return {};
 
         const results = await Promise.all(
-            carIds.map(async carId => {
+            propertyIds.map(async propertyId => {
                 try {
-                    const features = await window.SupabaseApi.getPropertyFeatures(carId);
-                    return { carId, features: features || {} };
+                    const features = await window.SupabaseApi.getPropertyFeatures(propertyId);
+                    return { propertyId, features: features || {} };
                 } catch (err) {
-                    console.warn('[ComparePanel._fetchAllCarFeatures] Error for property', carId, err);
-                    return { carId, features: {} };
+                    console.warn('[ComparePanel._fetchAllFeatures] Error for property', propertyId, err);
+                    return { propertyId, features: {} };
                 }
             })
         );
 
-        const carFeaturesMap = {};
-        results.forEach(({ carId, features }) => {
-            carFeaturesMap[carId] = features;
+        const featuresMap = {};
+        results.forEach(({ propertyId, features }) => {
+            featuresMap[propertyId] = features;
         });
 
-        console.log('[ComparePanel._fetchAllCarFeatures] Loaded features for', Object.keys(carFeaturesMap).length, 'cars');
-        return carFeaturesMap;
+        console.log('[ComparePanel._fetchAllFeatures] Loaded features for', Object.keys(featuresMap).length, 'properties');
+        return featuresMap;
     }
 };

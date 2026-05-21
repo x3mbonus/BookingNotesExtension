@@ -46,7 +46,7 @@ window.NotesEditor = {
     /**
      * Create and show notes editor (modal or panel)
      * @param {Object} config - Configuration
-     * @param {string} config.carId - Car ID to edit
+     * @param {string} config.propertyId - Property ID to edit
      * @param {Object} config.existingNote - Existing note data (null for new)
      * @param {HTMLElement} config.article - Article element (for parsing context)
      * @param {string} config.displayMode - 'modal' or 'panel'
@@ -54,12 +54,12 @@ window.NotesEditor = {
      * @param {Function} config.onClose - Callback when closed
      */
     async create(config) {
-        const { carId, existingNote, article, displayMode = 'modal', targetContainer, onClose } = config;
+        const { propertyId, existingNote, article, displayMode = 'modal', targetContainer, onClose } = config;
 
-        console.log(`[STAY-NOTES] Creating ${displayMode} for property:`, carId);
+        console.log(`[STAY-NOTES] Creating ${displayMode} for property:`, propertyId);
 
         // Initialize pending saves tracking for this editor instance
-        const editorKey = `editor_${carId}_${Date.now()}`;
+        const editorKey = `editor_${propertyId}_${Date.now()}`;
         console.log('[STAY-NOTES] Generated editorKey:', editorKey);
         this.pendingSaves[editorKey] = {
             textSave: null,
@@ -69,7 +69,7 @@ window.NotesEditor = {
 
         // ===== INITIALIZE STATE =====
         let state = {
-            carId: carId,
+            propertyId: propertyId,
             text: existingNote?.text || '',
             color: existingNote?.color || '#e0e0e0',
             sort: existingNote?.sort ?? null,
@@ -78,13 +78,19 @@ window.NotesEditor = {
             features: existingNote?.features || {},
             // Accommodation metadata fields
             name: existingNote?.name || '',
-            price_per_night: existingNote?.price_per_night || '',
+            price_booking: existingNote?.price_booking || '',
+            price_airbnb: existingNote?.price_airbnb || '',
             location: existingNote?.location || '',
             site_rating: existingNote?.site_rating || '',
-            bedrooms: existingNote?.bedrooms || '',
-            beds: existingNote?.beds || '',
-            distance_beach: existingNote?.distance_beach || '',
-            distance_airport: existingNote?.distance_airport || '',
+            property_type: existingNote?.property_type || '',
+            bedrooms_count: existingNote?.bedrooms_count || '',
+            sleeping_places: existingNote?.sleeping_places || '',
+            bathrooms_count: existingNote?.bathrooms_count || '',
+            toilets_count: existingNote?.toilets_count || '',
+            toilet_inside: existingNote?.toilet_inside || '',
+            heating_type: existingNote?.heating_type || '',
+            last_review_date: existingNote?.last_review_date || '',
+            cancellation_policy: existingNote?.cancellation_policy || '',
             url: existingNote?.url || '',
             photo_url: existingNote?.photo_url || ''
         };
@@ -103,15 +109,17 @@ window.NotesEditor = {
                         }
                     };
                     pick('name');
-                    pick('price_per_night');
+                    pick('price_booking');
+                    pick('price_airbnb');
                     pick('location');
                     pick('site_rating');
+                    pick('property_type');
                     pick('url');
                     pick('photo_url');
 
                     if (Object.keys(newFields).length > 0) {
                         console.log('[STAY-NOTES] Auto-saving extracted fields:', newFields);
-                        window.NoteCallbacks.updateMetadataFields(carId, newFields)
+                        window.NoteCallbacks.updateMetadataFields(propertyId, newFields)
                             .then(() => window.NotesEditor.showSaveNotification('Auto-extracted data saved', 'success', 2000))
                             .catch(err => console.error('[STAY-NOTES] ❌ Error auto-saving:', err));
                     }
@@ -129,7 +137,7 @@ window.NotesEditor = {
             // Only call initializeFeatures if we don't have features already
             try {
                 console.log('[STAY-NOTES] Features not in existingNote, calling initializeFeatures...');
-                const featureState = await window.FeaturesManager?.initializeFeatures?.(carId, article ? { frameText: article } : null);
+                const featureState = await window.FeaturesManager?.initializeFeatures?.(propertyId, article ? { frameText: article } : null);
                 if (featureState?.features) {
                     state.features = featureState.features;
                     console.log(`[STAY-NOTES] Loaded ${Object.keys(state.features).length} features from DB`);
@@ -161,20 +169,20 @@ window.NotesEditor = {
 
         if (displayMode === 'modal') {
             backdrop = document.createElement('div');
-            backdrop.className = 'car-note-modal-backdrop';
+            backdrop.className = 'property-note-modal-backdrop';
             backdrop.id = 'notes-editor-backdrop';
             backdrop.dataset.editorKey = editorKey;  // Store editor key for flush on close
 
             container = document.createElement('div');
-            container.className = 'car-note-modal';
+            container.className = 'property-note-modal';
             container.id = 'notes-editor-modal';
 
             backdrop.appendChild(container);
             document.body.appendChild(backdrop);
 
-            const header = this.createHeader(state.carId, displayMode, article, onClose, editorKey);
+            const header = this.createHeader(state.propertyId, displayMode, article, onClose, editorKey);
             content = document.createElement('div');
-            content.className = 'car-note-modal-content';
+            content.className = 'property-note-modal-content';
             container.appendChild(header);
             container.appendChild(content);
 
@@ -253,7 +261,7 @@ window.NotesEditor = {
                     window.NotesEditor.showSaveNotification('Saving rating...', 'info', 3000);
                     colorSaveTimeout = setTimeout(async () => {
                         try {
-                            const savePromise = window.NoteCallbacks.upsertNoteWithSort(state.carId, {
+                            const savePromise = window.NoteCallbacks.upsertNoteWithSort(state.propertyId, {
                                 text: state.text,
                                 color: state.color,
                                 sort: state.sort
@@ -288,7 +296,7 @@ window.NotesEditor = {
                 window.NotesEditor.showSaveNotification('Saving note...', 'info', 3000);
                 textSaveTimeout = setTimeout(async () => {
                     try {
-                        const savePromise = window.NoteCallbacks.upsertNote(state.carId, { text: state.text, color: state.color });
+                        const savePromise = window.NoteCallbacks.upsertNote(state.propertyId, { text: state.text, color: state.color });
                         // Track this save so it can be flushed if modal closes quickly
                         if (window.NotesEditor.pendingSaves[editorKey]) {
                             console.log('[STAY-NOTES] Registering text save promise for editor:', editorKey);
@@ -325,7 +333,7 @@ window.NotesEditor = {
                 state.confirmed = !state.confirmed;
                 window.NotesEditor.showSaveNotification('Saving...', 'info', 3000);
                 try {
-                    await window.NoteCallbacks.updateVerified(state.carId, state.confirmed);
+                    await window.NoteCallbacks.updateVerified(state.propertyId, state.confirmed);
                     verifyBtn.textContent = state.confirmed ? '✓ Перевірено' : '○ Не перевірено';
                     if (state.confirmed) verifyBtn.setAttribute('data-verified', 'true');
                     else verifyBtn.removeAttribute('data-verified');
@@ -345,7 +353,7 @@ window.NotesEditor = {
                 state.unavailable = !state.unavailable;
                 window.NotesEditor.showSaveNotification('Saving...', 'info', 3000);
                 try {
-                    await window.NoteCallbacks.updateUnavailable(state.carId, state.unavailable);
+                    await window.NoteCallbacks.updateUnavailable(state.propertyId, state.unavailable);
                     soldBtn.textContent = state.unavailable ? '🚫 Недоступне' : '○ Доступне';
                     soldBtn.style.border = `2px solid ${state.unavailable ? '#e53935' : '#9e9e9e'}`;
                     soldBtn.style.background = state.unavailable ? '#ffebee' : 'white';
@@ -369,24 +377,30 @@ window.NotesEditor = {
         // METADATA section
         const metadataSection = document.createElement('div');
         metadataSection.className = 'modal-section';
-        metadataSection.appendChild(window.UIComponents.createMetadataSection(
-            state,
-            (updatedMeta) => {
-                Object.assign(state, updatedMeta);
-                window.NotesEditor.showSaveNotification('Saving metadata...', 'info', 3000);
-                // Save each metadata field independently
-                Object.entries(updatedMeta).forEach(async ([fieldName, fieldValue]) => {
-                    try {
-                        await window.NoteCallbacks.updateMetadataField(state.carId, fieldName, fieldValue);
-                        // Show success for the first field updated
-                        window.NotesEditor.showSaveNotification('Metadata saved', 'success', 2000);
-                    } catch (error) {
-                        console.error('[STAY-NOTES] Error updating metadata:', error);
-                        window.NotesEditor.showSaveNotification('Failed to save metadata', 'error', 3000);
-                    }
-                });
-            }
-        ));
+        metadataSection.appendChild(window.UIComponents.createSectionLabel('ІНФОРМАЦІЯ'));
+
+        const metadataBody = document.createElement('div');
+        const buildMetadataBody = () => {
+            metadataBody.innerHTML = '';
+            metadataBody.appendChild(window.UIComponents.createMetadataSection(
+                state,
+                (updatedMeta) => {
+                    Object.assign(state, updatedMeta);
+                    window.NotesEditor.showSaveNotification('Saving metadata...', 'info', 3000);
+                    Object.entries(updatedMeta).forEach(async ([fieldName, fieldValue]) => {
+                        try {
+                            await window.NoteCallbacks.updateMetadataField(state.propertyId, fieldName, fieldValue);
+                            window.NotesEditor.showSaveNotification('Metadata saved', 'success', 2000);
+                        } catch (error) {
+                            console.error('[STAY-NOTES] Error updating metadata:', error);
+                            window.NotesEditor.showSaveNotification('Failed to save metadata', 'error', 3000);
+                        }
+                    });
+                }
+            ));
+        };
+        buildMetadataBody();
+        metadataSection.appendChild(metadataBody);
         sections.appendChild(metadataSection);
 
         const featuresSection = document.createElement('div');
@@ -394,11 +408,12 @@ window.NotesEditor = {
         const featuresLabel = window.UIComponents.createSectionLabel('FEATURES');
         featuresSection.appendChild(featuresLabel);
 
-        // Add single "Refresh All" button (only in panel mode, not modal)
+        // Buttons row (only in panel mode)
         if (displayMode === 'panel' && article) {
+            // Re-parse button
             const clearReparseBtn = document.createElement('button');
-            clearReparseBtn.textContent = '🔄 Refresh All (Clear & Re-parse)';
-            clearReparseBtn.title = 'Clear all metadata (price, mileage, year) and features, then re-parse fresh from page';
+            clearReparseBtn.textContent = '🔄';
+            clearReparseBtn.title = 'Clear all features and re-parse from page';
             clearReparseBtn.style.cssText = `
                 margin-left: 8px;
                 padding: 2px 6px;
@@ -416,89 +431,114 @@ window.NotesEditor = {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Ask for confirmation before clearing and re-parsing
-                const confirmMessage = 'CLEAR & RE-PARSE ALL\n\nThis will:\n• Clear all metadata (price, mileage, year, etc.)\n• Clear all feature selections\n• Re-extract everything fresh from the page\n\nAll manual edits will be LOST!\n\nContinue?';
-                if (!confirm(confirmMessage)) {
-                    return;
-                }
+                const confirmMessage = 'CLEAR & RE-PARSE ALL\n\nThis will:\n• Clear all metadata fields\n• Re-detect features from page amenities\n\nAll manual edits will be LOST!\n\nContinue?';
+                if (!confirm(confirmMessage)) return;
 
                 try {
-                    // Reset all accommodation metadata to empty
+                    // Reset metadata
                     state.name = '';
-                    state.price_per_night = '';
+                    state.price_booking = '';
+                    state.price_airbnb = '';
                     state.location = '';
                     state.site_rating = '';
-                    state.bedrooms = '';
-                    state.beds = '';
-                    state.distance_beach = '';
-                    state.distance_airport = '';
+                    state.property_type = '';
+                    state.bedrooms_count = '';
+                    state.sleeping_places = '';
+                    state.bathrooms_count = '';
+                    state.toilets_count = '';
+                    state.toilet_inside = '';
+                    state.heating_type = '';
+                    state.last_review_date = '';
+                    state.cancellation_policy = '';
 
                     // Reset all features to unknown
                     const configList = window.UIComponents?.getFeaturesList?.() || [];
                     state.features = {};
-                    configList.forEach(feature => {
-                        state.features[feature.key] = null;
-                    });
+                    configList.forEach(f => { state.features[f.key] = null; });
 
                     // Extract fresh data from page
                     const extracted = window.extractPropertyData?.();
-
                     if (extracted) {
-                        state.name = extracted.name || '';
-                        state.price_per_night = extracted.price_per_night || '';
-                        state.location = extracted.location || '';
-                        state.site_rating = extracted.site_rating || '';
-                        state.url = extracted.url || state.url;
-                        state.photo_url = extracted.photo_url || state.photo_url;
+                        state.name          = extracted.name          || '';
+                        state.price_booking = extracted.price_booking || '';
+                        state.price_airbnb  = extracted.price_airbnb  || '';
+                        state.location      = extracted.location      || '';
+                        state.site_rating   = extracted.site_rating   || '';
+                        state.property_type = extracted.property_type || '';
+                        state.url           = extracted.url           || state.url;
+                        state.photo_url     = extracted.photo_url     || state.photo_url;
+
+                        // Parse features from amenity list
+                        const parsedFeatures = await window.FeaturesManager?.parseFeaturesFromPage?.(extracted);
+                        if (parsedFeatures) Object.assign(state.features, parsedFeatures);
                     }
 
-                    // Save all metadata to database
-                    const metadataFields = ['name', 'price_per_night', 'location', 'site_rating', 'bedrooms', 'beds', 'distance_beach', 'distance_airport', 'url'];
+                    // Save metadata
+                    const metadataFields = [
+                        'name', 'price_booking', 'price_airbnb', 'location', 'site_rating',
+                        'property_type', 'bedrooms_count', 'sleeping_places',
+                        'bathrooms_count', 'toilets_count', 'toilet_inside',
+                        'heating_type', 'last_review_date', 'cancellation_policy', 'url'
+                    ];
                     const savePromises = metadataFields.map(field =>
-                        window.NoteCallbacks.updateMetadataField(state.carId, field, state[field])
+                        window.NoteCallbacks.updateMetadataField(state.propertyId, field, state[field])
                             .catch(err => console.error('[STAY-NOTES] Error saving', field, ':', err))
                     );
 
-                    // Save all features to database
+                    // Save features
                     Object.entries(state.features).forEach(([featureKey, featureState]) => {
                         savePromises.push(
-                            window.NoteCallbacks.updateFeature(state.carId, featureKey, featureState)
+                            window.NoteCallbacks.updateFeature(state.propertyId, featureKey, featureState)
                                 .catch(err => console.error('[STAY-NOTES] Error saving feature', featureKey, ':', err))
                         );
                     });
 
-                    // Wait for all saves
                     await Promise.all(savePromises);
-
-                    // Update UI
                     updateFeaturesGrid();
 
-                    // Reconstruct metadata section to reflect cleared/refreshed data
-                    metadataSection.innerHTML = '';
-                    metadataSection.appendChild(window.UIComponents.createMetadataSection(
-                        state,
-                        (updatedMeta) => {
-                            Object.assign(state, updatedMeta);
-                            window.NotesEditor.showSaveNotification('Saving metadata...', 'info', 3000);
-                            Object.entries(updatedMeta).forEach(async ([fieldName, fieldValue]) => {
-                                try {
-                                    await window.NoteCallbacks.updateMetadataField(state.carId, fieldName, fieldValue);
-                                    window.NotesEditor.showSaveNotification('Metadata saved', 'success', 2000);
-                                } catch (error) {
-                                    console.error('[STAY-NOTES] Error updating metadata:', error);
-                                    window.NotesEditor.showSaveNotification('Failed to save metadata', 'error', 3000);
-                                }
-                            });
-                        }
-                    ));
+                    // Rebuild metadata section body (preserves label + collapsible state)
+                    buildMetadataBody();
 
-                    window.NotesEditor.showSaveNotification('Data cleared and re-parsed from page!', 'success', 3000);
+                    const amenityCount = extracted?.amenities?.length || 0;
+                    window.NotesEditor.showSaveNotification(
+                        amenityCount > 0 ? `Re-parsed from ${amenityCount} amenities` : 'Re-parsed from page',
+                        'success', 3000
+                    );
                 } catch (error) {
                     console.error('[STAY-NOTES] Error during refresh:', error);
-                    window.NotesEditor.showSaveNotification('Error clearing and re-parsing data', 'error', 3000);
+                    window.NotesEditor.showSaveNotification('Error re-parsing data', 'error', 3000);
                 }
             };
             featuresLabel.appendChild(clearReparseBtn);
+
+            // Copy amenities button — only shown when page has detected amenities
+            const pageAmenities = article?.amenities || [];
+            if (pageAmenities.length > 0) {
+                const copyBtn = document.createElement('button');
+                copyBtn.textContent = '📋';
+                copyBtn.title = `Copy ${pageAmenities.length} amenities as text`;
+                copyBtn.style.cssText = `
+                    margin-left: 4px;
+                    padding: 2px 6px;
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 10px;
+                    pointer-events: auto;
+                    position: relative;
+                    z-index: 10002;
+                `;
+                copyBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(pageAmenities.join('\n')).then(() => {
+                        window.NotesEditor.showSaveNotification(`${pageAmenities.length} amenities copied`, 'success', 2000);
+                    });
+                };
+                featuresLabel.appendChild(copyBtn);
+            }
         }
 
         featuresSection.appendChild(window.UIComponents.createFeaturesGrid(
@@ -507,10 +547,10 @@ window.NotesEditor = {
             async (featureKey) => {
                 console.log('[STAY-NOTES] Feature button clicked:', featureKey);
                 const nextState = window.NoteCallbacks.toggleFeatureState(state.features[featureKey]);
-                console.log('[STAY-NOTES] Next state:', nextState, 'for carId:', state.carId);
+                console.log('[STAY-NOTES] Next state:', nextState, 'for propertyId:', state.propertyId);
                 state.features[featureKey] = nextState;
                 // Save ONLY this single feature to database (independent operation)
-                const result = await window.NoteCallbacks.updateFeature(state.carId, featureKey, nextState);
+                const result = await window.NoteCallbacks.updateFeature(state.propertyId, featureKey, nextState);
                 console.log('[STAY-NOTES] updateFeature returned:', result);
                 // Refresh the grid to show the new state
                 updateFeaturesGrid();
@@ -522,14 +562,14 @@ window.NotesEditor = {
         if (state.photo_url) {
             const photoSection = document.createElement('div');
             photoSection.className = 'modal-section';
-            photoSection.appendChild(window.UIComponents.createSectionLabel('PHOTO'));
+            photoSection.appendChild(window.UIComponents.createSectionLabel('ФОТО'));
 
             const img = document.createElement('img');
             img.src = state.photo_url;
-            img.alt = `${state.make || ''} ${state.model || ''}`.trim() || 'Car photo';
+            img.alt = 'Property photo';
             img.style.cssText = `
                 width: 100%;
-                max-height: 220px;
+                max-height: 150px;
                 object-fit: cover;
                 border-radius: 6px;
                 display: block;
@@ -548,15 +588,15 @@ window.NotesEditor = {
         deleteSection.style.cssText = 'margin-top: auto; padding-top: 8px; border-top: 1px solid #eee; display: flex; justify-content: flex-end;';
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'car-note-modal-delete-btn visible';
+        deleteBtn.className = 'property-note-modal-delete-btn visible';
         deleteBtn.textContent = '🗑️';
         deleteBtn.title = 'Delete this note';
         deleteBtn.onclick = async (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (confirm('Delete this note?')) {
-                await window.NoteCallbacks.deletePropertyData(state.carId);
-                window.CarDetailPanel?.clearPanel?.();
+                await window.NoteCallbacks.deletePropertyData(state.propertyId);
+                window.PropertyPanel?.clearPanel?.();
                 this.close(displayMode);
             }
         };
@@ -576,7 +616,7 @@ window.NotesEditor = {
                     const nextState = window.NoteCallbacks.toggleFeatureState(state.features[featureKey]);
                     state.features[featureKey] = nextState;
                     // Save ONLY this single feature to database (independent operation)
-                    await window.NoteCallbacks.updateFeature(state.carId, featureKey, nextState);
+                    await window.NoteCallbacks.updateFeature(state.propertyId, featureKey, nextState);
                     // Refresh the grid to show the new state
                     updateFeaturesGrid();
                 }
@@ -589,14 +629,14 @@ window.NotesEditor = {
     /**
      * Create header for modal (close button only, delete moved to footer)
      */
-    createHeader(carId, displayMode, article, onClose, editorKey) {
+    createHeader(propertyId, displayMode, article, onClose, editorKey) {
         const header = document.createElement('div');
-        header.className = 'car-note-modal-header';
-        header.innerHTML = `<h3>Property Details - ID: ${window.escapeHtml(carId)}</h3>`;
+        header.className = 'property-note-modal-header';
+        header.innerHTML = `<h3>Property Details - ID: ${window.escapeHtml(propertyId)}</h3>`;
 
         // Close button (top right)
         const closeBtn = document.createElement('button');
-        closeBtn.className = 'car-note-modal-close';
+        closeBtn.className = 'property-note-modal-close';
         closeBtn.textContent = '✕';
         closeBtn.title = 'Close';
         closeBtn.onclick = async (e) => {

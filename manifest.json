@@ -46,6 +46,8 @@
         "src/content/components/common/notes-editor.js",
         "src/content/components/compare/compare-table.js",
         "src/content/components/compare/compare-panel.js",
+        "src/content/services/parsers/booking/booking-extractor.js",
+        "src/content/services/parsers/airbnb/airbnb-extractor.js",
         "src/content/services/parsers/property-extractor.js",
         "src/content/services/parsers/features-parser.js",
         "src/content/persistence/supabase-client.js",

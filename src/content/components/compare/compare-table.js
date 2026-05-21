@@ -4,7 +4,7 @@
  */
 
 window.CompareTable = {
-    createCompareTable(carList, allFeatures = []) {
+    createCompareTable(propList, allFeatures = []) {
         const container = document.createElement('div');
         container.className = 'compare-table-container';
         container.style.cssText = `
@@ -35,20 +35,20 @@ window.CompareTable = {
         headerCell.textContent = 'Property';
         headerCell.style.cssText = 'padding: 4px 6px; border: 1px solid #ddd; min-width: 120px; text-align: left;';
 
-        carList.forEach((car) => {
+        propList.forEach((prop) => {
             const cell = headerRow.insertCell();
-            const name = car.metadata?.name || car.carId || 'Unknown';
-            const url  = car.metadata?.url || '';
-            const isCurrent = car.isCurrentCar ? ' (← Current)' : '';
+            const name = prop.metadata?.name || prop.propertyId || 'Unknown';
+            const url  = prop.metadata?.url || '';
+            const isCurrent = prop.isCurrentProperty ? ' (← Current)' : '';
 
             cell.style.cssText = `
                 padding: 4px 6px;
-                border: ${car.isCurrentCar ? '3px solid #667eea' : '1px solid #ddd'};
+                border: ${prop.isCurrentProperty ? '3px solid #667eea' : '1px solid #ddd'};
                 min-width: 140px;
                 text-align: center;
                 vertical-align: middle;
-                background: ${this._getRatingColor(car.metadata?.sort)};
-                font-weight: ${car.isCurrentCar ? 'bold' : 'normal'};
+                background: ${this._getRatingColor(prop.metadata?.sort)};
+                font-weight: ${prop.isCurrentProperty ? 'bold' : 'normal'};
                 font-size: 12px;
             `;
 
@@ -66,12 +66,12 @@ window.CompareTable = {
 
         const tbody = table.createTBody();
 
-        this._addPhotoRow(tbody, carList);
-        this._addNoteRow(tbody, carList);
+        this._addPhotoRow(tbody, propList);
+        this._addNoteRow(tbody, propList);
 
         // Rating
-        this._addCompareRow(tbody, 'Рейтинг', carList, (car) => {
-            const sortId = car.metadata?.sort;
+        this._addCompareRow(tbody, 'Рейтинг', propList, (prop) => {
+            const sortId = prop.metadata?.sort;
             return {
                 0: 'Best 🟢', 1: 'Good 🟢', 2: 'Fair 🟡',
                 3: 'Poor 🟠', '-1': 'Excluded 🔴', 'null': '—'
@@ -79,38 +79,52 @@ window.CompareTable = {
         }, 0, false);
 
         // Accommodation metadata rows
-        this._addCompareRow(tbody, 'Ціна/ніч', carList,
-            (car) => car.metadata?.price_per_night || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('price_per_night', car.metadata?.price_per_night));
-        this._addCompareRow(tbody, 'Рейтинг сайту', carList,
-            (car) => car.metadata?.site_rating || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('site_rating', car.metadata?.site_rating));
-        this._addCompareRow(tbody, 'Спалень', carList,
-            (car) => car.metadata?.bedrooms || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('bedrooms', car.metadata?.bedrooms));
-        this._addCompareRow(tbody, 'Ліжок', carList,
-            (car) => car.metadata?.beds || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('beds', car.metadata?.beds));
-        this._addCompareRow(tbody, 'До пляжу (км)', carList,
-            (car) => car.metadata?.distance_beach || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('distance_beach', car.metadata?.distance_beach));
-        this._addCompareRow(tbody, 'До аеропорту (км)', carList,
-            (car) => car.metadata?.distance_airport || '—', 0, false,
-            (car) => window.UIComponents?.getMetadataColor?.('distance_airport', car.metadata?.distance_airport));
-        this._addCompareRow(tbody, 'Локація', carList,
-            (car) => car.metadata?.location || '—', 0, false);
+        this._addCompareRow(tbody, 'Booking ціна/ніч', propList,
+            (prop) => prop.metadata?.price_booking || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('price_booking', prop.metadata?.price_booking));
+        this._addCompareRow(tbody, 'Airbnb ціна/ніч', propList,
+            (prop) => prop.metadata?.price_airbnb || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('price_airbnb', prop.metadata?.price_airbnb));
+        this._addCompareRow(tbody, 'Тип об\'єкту', propList,
+            (prop) => prop.metadata?.property_type || '—', 0, false);
+        this._addCompareRow(tbody, 'Рейтинг сайту', propList,
+            (prop) => prop.metadata?.site_rating || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('site_rating', prop.metadata?.site_rating));
+        this._addCompareRow(tbody, 'Спалень', propList,
+            (prop) => prop.metadata?.bedrooms_count || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('bedrooms_count', prop.metadata?.bedrooms_count));
+        this._addCompareRow(tbody, 'Спальних місць', propList,
+            (prop) => prop.metadata?.sleeping_places || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('sleeping_places', prop.metadata?.sleeping_places));
+        this._addCompareRow(tbody, 'Ванних кімнат', propList,
+            (prop) => prop.metadata?.bathrooms_count || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('bathrooms_count', prop.metadata?.bathrooms_count));
+        this._addCompareRow(tbody, 'Туалетів', propList,
+            (prop) => prop.metadata?.toilets_count || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('toilets_count', prop.metadata?.toilets_count));
+        this._addCompareRow(tbody, 'Туалет всередині', propList,
+            (prop) => prop.metadata?.toilet_inside || '—', 0, false,
+            (prop) => window.UIComponents?.getMetadataColor?.('toilet_inside', prop.metadata?.toilet_inside));
+        this._addCompareRow(tbody, 'Опалення', propList,
+            (prop) => prop.metadata?.heating_type || '—', 0, false);
+        this._addCompareRow(tbody, 'Останній відгук', propList,
+            (prop) => prop.metadata?.last_review_date || '—', 0, false);
+        this._addCompareRow(tbody, 'Скасування', propList,
+            (prop) => prop.metadata?.cancellation_policy || '—', 0, false);
+        this._addCompareRow(tbody, 'Локація', propList,
+            (prop) => prop.metadata?.location || '—', 0, false);
 
         // Features section
         const featuresHeaderRow = tbody.insertRow();
         featuresHeaderRow.style.cssText = 'background: #e8f5e9; font-weight: bold;';
         const featuresHeader = featuresHeaderRow.insertCell();
         featuresHeader.textContent = 'AMENITIES';
-        featuresHeader.colSpan = carList.length + 1;
+        featuresHeader.colSpan = propList.length + 1;
         featuresHeader.style.cssText = 'padding: 3px 6px; border: 1px solid #ddd; text-align: left; color: #2e7d32;';
 
         allFeatures.forEach(feature => {
-            this._addCompareRow(tbody, feature.label, carList, (car) => {
-                const state = car.features?.[feature.key];
+            this._addCompareRow(tbody, feature.label, propList, (prop) => {
+                const state = prop.features?.[feature.key];
                 if (state === true)  return '✓';
                 if (state === false) return '✗';
                 return '?';
@@ -138,7 +152,7 @@ window.CompareTable = {
         return container;
     },
 
-    _addPhotoRow(tbody, carList) {
+    _addPhotoRow(tbody, propList) {
         const row = tbody.insertRow();
 
         const labelCell = row.insertCell();
@@ -148,21 +162,21 @@ window.CompareTable = {
             background: #fafafa; min-width: 120px; text-align: left; vertical-align: middle;
         `;
 
-        carList.forEach(car => {
+        propList.forEach(prop => {
             const cell = row.insertCell();
-            const url      = car.metadata?.url || '';
-            const photoUrl = car.metadata?.photo_url || '';
+            const url      = prop.metadata?.url || '';
+            const photoUrl = prop.metadata?.photo_url || '';
 
             cell.style.cssText = `
                 padding: 3px 6px;
-                border: ${car.isCurrentCar ? '3px solid #667eea' : '1px solid #ddd'};
-                background: ${this._getRatingColor(car.metadata?.sort)};
+                border: ${prop.isCurrentProperty ? '3px solid #667eea' : '1px solid #ddd'};
+                background: ${this._getRatingColor(prop.metadata?.sort)};
                 text-align: center; vertical-align: middle;
             `;
 
             if (photoUrl) {
                 const img = document.createElement('img');
-                img.alt = car.metadata?.name || '';
+                img.alt = prop.metadata?.name || '';
                 img.style.cssText = `
                     width: 100%; height: 100px; object-fit: cover;
                     border-radius: 4px; display: block; background: #eee;
@@ -179,7 +193,7 @@ window.CompareTable = {
         });
     },
 
-    _addNoteRow(tbody, carList) {
+    _addNoteRow(tbody, propList) {
         const row = tbody.insertRow();
         row.style.cssText = 'border-bottom: 1px solid #ddd;';
 
@@ -190,19 +204,19 @@ window.CompareTable = {
             background: #fafafa; min-width: 120px; text-align: left; vertical-align: top;
         `;
 
-        carList.forEach(car => {
+        propList.forEach(prop => {
             const cell = row.insertCell();
             cell.style.cssText = `
                 padding: 3px 6px; border: 1px solid #ddd; text-align: left;
-                font-size: 11px; background: ${this._getRatingColor(car.metadata?.sort)};
+                font-size: 11px; background: ${this._getRatingColor(prop.metadata?.sort)};
                 vertical-align: top; white-space: pre-wrap;
                 max-width: 160px; word-break: break-word;
             `;
-            cell.textContent = car.note || '—';
+            cell.textContent = prop.note || '—';
         });
     },
 
-    _addCompareRow(tbody, label, carList, getValue, priority = 0, isHtml = false, getColor = null, coolPriority = null) {
+    _addCompareRow(tbody, label, propList, getValue, priority = 0, isHtml = false, getColor = null, coolPriority = null) {
         const row = tbody.insertRow();
         row.style.cssText = 'border-bottom: 1px solid #ddd;';
 
@@ -213,10 +227,10 @@ window.CompareTable = {
             background: #fafafa; min-width: 120px; text-align: left;
         `;
 
-        carList.forEach((car) => {
+        propList.forEach((prop) => {
             const cell  = row.insertCell();
-            const value = getValue(car);
-            const ratingBgColor = this._getRatingColor(car.metadata?.sort);
+            const value = getValue(prop);
+            const ratingBgColor = this._getRatingColor(prop.metadata?.sort);
 
             if (value === '✓') {
                 const isCool = coolPriority > 0;
@@ -246,7 +260,7 @@ window.CompareTable = {
             } else {
                 if (isHtml) cell.innerHTML = value;
                 else        cell.textContent = value;
-                const color = getColor ? getColor(car) : null;
+                const color = getColor ? getColor(prop) : null;
                 cell.style.cssText = `
                     padding: 3px 6px; border: 1px solid #ddd; text-align: center;
                     font-size: 11px; font-weight: 500;

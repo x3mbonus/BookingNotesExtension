@@ -1,5 +1,5 @@
 // Shared UI Components for Notes, Ratings, Features, Verification
-// Used by both CarDetailPanel and NoteModal
+// Used by both PropertyPanel and NoteModal
 
 window.UIComponents = {
     // Render color picker grid - first color (gray) is default
@@ -75,7 +75,7 @@ window.UIComponents = {
         document.head.appendChild(placeholderStyle);
 
         // Stop keyboard events from reaching the page — both bubble and capture phase.
-        // Car listing sites intercept Space/Arrow keys (sometimes via capture listeners)
+        // Listing sites intercept Space/Arrow keys (sometimes via capture listeners)
         // which causes focus loss or page scroll while typing.
         const stopKeys = (e) => e.stopPropagation();
         textarea.addEventListener('keydown',  stopKeys, true);
@@ -260,58 +260,24 @@ window.UIComponents = {
         section.className = 'ui-metadata-section';
 
         const metadataFields = [
-            {
-                label: 'Назва',
-                key: 'name',
-                type: 'text',
-                placeholder: 'Назва об\'єкту'
-            },
-            {
-                label: 'Ціна/ніч',
-                key: 'price_per_night',
-                type: 'text',
-                placeholder: 'e.g., €85'
-            },
-            {
-                label: 'Локація',
-                key: 'location',
-                type: 'text',
-                placeholder: 'Місто, район'
-            },
-            {
-                label: 'Рейтинг сайту',
-                key: 'site_rating',
-                type: 'text',
-                placeholder: 'e.g., 8.5'
-            },
-            {
-                label: 'Спальні',
-                key: 'bedrooms',
-                type: 'text',
-                placeholder: 'Кількість спалень'
-            },
-            {
-                label: 'Ліжка',
-                key: 'beds',
-                type: 'text',
-                placeholder: 'Кількість ліжок'
-            },
-            {
-                label: 'До моря (км)',
-                key: 'distance_beach',
-                type: 'text',
-                placeholder: 'e.g., 0.5'
-            },
-            {
-                label: 'До аеропорту (км)',
-                key: 'distance_airport',
-                type: 'text',
-                placeholder: 'e.g., 15'
-            }
+            { label: 'Назва',              key: 'name',                type: 'text',   placeholder: 'Назва об\'єкту' },
+            { label: 'Тип об\'єкту',       key: 'property_type',       type: 'text',   placeholder: 'будинок, квартира, готель...' },
+            { label: 'Ціна Booking/ніч',   key: 'price_booking',       type: 'text',   placeholder: 'e.g., €85' },
+            { label: 'Ціна Airbnb/ніч',    key: 'price_airbnb',        type: 'text',   placeholder: 'e.g., €90' },
+            { label: 'Локація',            key: 'location',            type: 'text',   placeholder: 'Місто, район' },
+            { label: 'Рейтинг сайту',      key: 'site_rating',         type: 'text',   placeholder: 'e.g., 8.5' },
+            { label: 'Спалень',            key: 'bedrooms_count',      type: 'text',   placeholder: 'Кількість спалень' },
+            { label: 'Спальних місць',     key: 'sleeping_places',     type: 'text',   placeholder: 'Кількість спальних місць' },
+            { label: 'Ванних кімнат',      key: 'bathrooms_count',     type: 'text',   placeholder: 'Кількість ванних' },
+            { label: 'Туалетів',           key: 'toilets_count',       type: 'text',   placeholder: 'Кількість туалетів' },
+            { label: 'Туалет всередині',   key: 'toilet_inside',       type: 'select', options: ['Не вказано', 'Так', 'Ні'] },
+            { label: 'Опалення',           key: 'heating_type',        type: 'text',   placeholder: 'центральне, газове...' },
+            { label: 'Останній відгук',    key: 'last_review_date',    type: 'text',   placeholder: 'e.g., 2024-03' },
+            { label: 'Скасування',         key: 'cancellation_policy', type: 'text',   placeholder: 'free або дата' },
         ];
 
         // Use propertyData as the data source
-        const carData = propertyData;
+        const propData = propertyData;
 
         const getMetadataColor = (field, value) => this.getMetadataColor(field, value);
 
@@ -330,18 +296,19 @@ window.UIComponents = {
                 input.className = 'ui-metadata-input';
                 input.type = 'text';
                 input.placeholder = field.placeholder || '';
-                input.value = carData[field.key] || '';
+                input.value = propData[field.key] || '';
                 if (field.readonly) {
                     input.readOnly = true;
                 }
 
                 input.style.cssText = `
                     width: 100%;
-                    padding: 8px;
+                    padding: 3px 5px;
                     border: 1px solid #ddd;
-                    border-radius: 4px;
-                    font-size: 13px;
+                    border-radius: 3px;
+                    font-size: 11px;
                     background-color: white;
+                    box-sizing: border-box;
                 `;
                 if (field.readonly) {
                     input.style.cursor = 'default';
@@ -412,7 +379,7 @@ window.UIComponents = {
                 });
 
                 // NOW set the value (after options exist)
-                const savedValue = carData[field.key] || '';
+                const savedValue = propData[field.key] || '';
                 select.value = savedValue;
 
                 // Apply initial color based on the set value
@@ -464,31 +431,6 @@ window.UIComponents = {
     getMetadataColor(field, value) {
         if (!value) return { bg: 'white', text: '#333' };
 
-        if (field === 'distance_beach') {
-            const m = value.toString().replace(',', '.').match(/[\d.]+/);
-            if (m) {
-                const km = parseFloat(m[0]);
-                if (km <= 0.3) return { bg: '#1B5E20', text: '#FFFFFF' };
-                if (km <= 0.7) return { bg: '#388E3C', text: '#FFFFFF' };
-                if (km <= 1.5) return { bg: '#4CAF50', text: '#FFFFFF' };
-                if (km <= 3)   return { bg: '#E8F5E9', text: '#1b5e20' };
-                if (km <= 7)   return { bg: '#FFF9C4', text: '#F57F17' };
-                return { bg: '#FFCDD2', text: '#C62828' };
-            }
-        }
-
-        if (field === 'distance_airport') {
-            const m = value.toString().replace(',', '.').match(/[\d.]+/);
-            if (m) {
-                const km = parseFloat(m[0]);
-                if (km <= 10)  return { bg: '#1B5E20', text: '#FFFFFF' };
-                if (km <= 20)  return { bg: '#4CAF50', text: '#FFFFFF' };
-                if (km <= 35)  return { bg: '#E8F5E9', text: '#1b5e20' };
-                if (km <= 50)  return { bg: '#FFF9C4', text: '#F57F17' };
-                return { bg: '#FFCDD2', text: '#C62828' };
-            }
-        }
-
         if (field === 'site_rating') {
             const m = value.toString().replace(',', '.').match(/[\d.]+/);
             if (m) {
@@ -502,13 +444,26 @@ window.UIComponents = {
             }
         }
 
-        if (field === 'bedrooms' || field === 'beds') {
+        if (field === 'bedrooms_count' || field === 'sleeping_places') {
             const m = value.toString().match(/\d+/);
             if (m) {
                 const n = parseInt(m[0]);
                 if (n >= 3) return { bg: '#1B5E20', text: '#FFFFFF' };
                 if (n >= 2) return { bg: '#4CAF50', text: '#FFFFFF' };
             }
+        }
+
+        if (field === 'bathrooms_count' || field === 'toilets_count') {
+            const m = value.toString().match(/\d+/);
+            if (m) {
+                const n = parseInt(m[0]);
+                if (n >= 2) return { bg: '#4CAF50', text: '#FFFFFF' };
+            }
+        }
+
+        if (field === 'toilet_inside') {
+            if (value === 'Так' || value === 'yes') return { bg: '#4CAF50', text: '#FFFFFF' };
+            if (value === 'Ні'  || value === 'no')  return { bg: '#FFCDD2', text: '#C62828' };
         }
 
         return { bg: 'white', text: '#333' };

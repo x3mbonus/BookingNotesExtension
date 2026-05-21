@@ -4,8 +4,8 @@
 window.FeaturesManager = {
     featureConfigCache: null,
     fullFeaturesListCache: null,  // Cache for the full features list with config and metadata
-    carFeaturesCache: {},  // Cache for features by carId: { carId: { features, sort, confirmed } }
-    carDataCache: {},  // Cache for car metadata by carId: { carId: { text, color, sort, confirmed, ... } }
+    featuresCache: {},  // Cache for features by propertyId: { propertyId: { features, sort, confirmed } }
+    dataCache: {},  // Cache for property metadata by propertyId: { propertyId: { text, color, sort, confirmed, ... } }
 
     /**
      * Get full features list with config and metadata
@@ -118,23 +118,23 @@ window.FeaturesManager = {
     },
 
     /**
-     * Initialize features for a car listing
+     * Initialize features for a property listing
      * Load from DB or parse from content
-     * NOTE: Always checks DB first - don't cache parsed features per-car as rules may change
+     * NOTE: Always checks DB first - don't cache parsed features per-property as rules may change
      */
-    async initializeFeatures(carId, data) {
-        console.log('[STAY-NOTES] initializeFeatures called for carId:', carId);
+    async initializeFeatures(propertyId, data) {
+        console.log('[STAY-NOTES] initializeFeatures called for property:', propertyId);
 
         // If data not provided, extract it from the page
         if (!data) {
-            data = window.extractCarData?.();
+            data = window.extractPropertyData?.();
             console.log('[STAY-NOTES] Data not provided, extracted from page:', !!data);
         }
 
         // Try to load from database first
         let dbFeatures = null;
         try {
-            dbFeatures = await window.SupabaseApi.getPropertyFeatures(carId);
+            dbFeatures = await window.SupabaseApi.getPropertyFeatures(propertyId);
             console.log('[STAY-NOTES] Loaded from DB:', Object.keys(dbFeatures || {}).length, 'features');
         } catch (error) {
             console.warn('[STAY-NOTES] Error fetching from DB:', error);
@@ -143,14 +143,14 @@ window.FeaturesManager = {
         // If we got data from DB, return it (it's already in the right format: { key: state })
         if (dbFeatures && Object.keys(dbFeatures).length > 0) {
             console.log('[STAY-NOTES] Using DB features');
-            // Get car metadata WITHOUT re-fetching features (uses cache to prevent duplicates)
-            const carData = await this.getPropertyDataMetadata(carId);
+            // Get property metadata WITHOUT re-fetching features (uses cache to prevent duplicates)
+            const propData = await this.getPropertyDataMetadata(propertyId);
             const result = {
                 features: dbFeatures,
-                confirmed: carData?.confirmed || false,
-                sort: carData?.sort || null,
+                confirmed: propData?.confirmed || false,
+                sort: propData?.sort || null,
                 isFromDb: true,
-                featuresSource: carData?.featuresSource || 'manual'
+                featuresSource: propData?.featuresSource || 'manual'
             };
             console.log('[STAY-NOTES] Returning DB result:', result);
             return result;
@@ -160,41 +160,11 @@ window.FeaturesManager = {
         console.log('[FeaturesManager] Parsing features from page content');
         if (!data) {
             console.warn('[FeaturesManager] No data available to parse features from');
-            const result = {
-                features: {},
-                confirmed: false,
-                sort: null,
-                isFromDb: false,
-                featuresSource: null
-            };
-            return result;
+            return { features: {}, confirmed: false, sort: null, isFromDb: false, featuresSource: null };
         }
 
-        // Get feature config to map feature names to keys
-        const featureConfig = await this.getFeatureConfig();
-        const nameToKey = {};
-        featureConfig.forEach(fc => {
-            nameToKey[fc.name_uk] = fc.key;
-        });
-
-        // Parse features
-        const parsed = window.FeaturesParser.parseFeatures(data);
-        console.log('[STAY-NOTES] Parsed features raw:', parsed);
-        const features = {};
-
-        // Convert feature names to keys
-        Object.entries(parsed).forEach(([featureName, isPresent]) => {
-            // Try to find key from config, fallback to column name conversion
-            let key = nameToKey[featureName];
-            if (!key) {
-                key = window.FeatureColumnMapper ?
-                    window.FeatureColumnMapper.featureToColumnName(featureName) :
-                    'feature_' + featureName.toLowerCase().replace(/[^\w]/g, '_').replace(/_+/g, '_');
-            }
-            const state = isPresent ? true : null; // null = unknown
-            console.log(`[STAY-NOTES] "${featureName}" (${isPresent}) → "${key}" = ${state}`);
-            features[key] = state;
-        });
+        const features = await this.parseFeaturesFromPage(data);
+        console.log('[STAY-NOTES] Parsed features:', features);
 
         console.log('[STAY-NOTES] Final features object:', features);
         const result = {
@@ -209,16 +179,41 @@ window.FeaturesManager = {
     },
 
     /**
-     * Save features to database using new car_features table
+     * Parse features from extracted page data, returning { featureKey: true|null }.
+     * Uses amenity list when available (more precise), falls back to full-text scan.
      */
-    async saveFeatures(carId, features, sort = null, confirmed = false) {
-        console.log('[FeaturesManager.saveFeatures] Saving', Object.keys(features).length, 'features for:', carId, 'sort:', sort, 'confirmed:', confirmed);
-        return await window.SupabaseApi.savePropertyFeaturesNew(carId, features, sort, confirmed);
+    async parseFeaturesFromPage(data) {
+        const featureConfig = await this.getFeatureConfig();
+        const labelToKey = {};
+        featureConfig.forEach(fc => {
+            // Support both 'label' (schema) and 'name_uk' (possible API alias)
+            if (fc.label)   labelToKey[fc.label]   = fc.key;
+            if (fc.name_uk) labelToKey[fc.name_uk] = fc.key;
+        });
+
+        const parsed = (data?.amenities?.length > 0)
+            ? window.FeaturesParser.parseFeaturesFromList(data.amenities)
+            : window.FeaturesParser.parseFeatures(data);
+
+        const features = {};
+        Object.entries(parsed).forEach(([featureName, isPresent]) => {
+            const key = labelToKey[featureName];
+            if (key) features[key] = isPresent ? true : null;
+        });
+        return features;
     },
 
-    async updateFeature(carId, featureKey, state) {
-        console.log(`[FeaturesManager.updateFeature] Updating ${featureKey} to ${state} for ${carId}`);
-        return await window.SupabaseApi.updatePropertyFeature(carId, featureKey, state);
+    /**
+     * Save features to database
+     */
+    async saveFeatures(propertyId, features, sort = null, confirmed = false) {
+        console.log('[FeaturesManager.saveFeatures] Saving', Object.keys(features).length, 'features for:', propertyId, 'sort:', sort, 'confirmed:', confirmed);
+        return await window.SupabaseApi.savePropertyFeaturesNew(propertyId, features, sort, confirmed);
+    },
+
+    async updateFeature(propertyId, featureKey, state) {
+        console.log(`[FeaturesManager.updateFeature] Updating ${featureKey} to ${state} for ${propertyId}`);
+        return await window.SupabaseApi.updatePropertyFeature(propertyId, featureKey, state);
     },
 
     /**
@@ -235,16 +230,16 @@ window.FeaturesManager = {
         }
     },
 
-    async toggleFeature(carId, featureKey, currentState) {
+    async toggleFeature(propertyId, featureKey, currentState) {
         const nextState = this.toggleFeatureState(currentState);
-        return await this.updateFeature(carId, featureKey, nextState);
+        return await this.updateFeature(propertyId, featureKey, nextState);
     },
 
     /**
      * Mark all features as confirmed
      */
-    async confirmAllFeatures(carId, features, sort = null, confirmed = true) {
-        return await this.saveFeatures(carId, features, sort, confirmed);
+    async confirmAllFeatures(propertyId, features, sort = null, confirmed = true) {
+        return await this.saveFeatures(propertyId, features, sort, confirmed);
     },
 
     /**
@@ -277,21 +272,21 @@ window.FeaturesManager = {
     },
 
     /**
-     * Get car data metadata with caching to prevent duplicate requests
+     * Get property data metadata with caching to prevent duplicate requests
      */
-    async getPropertyDataMetadata(carId) {
+    async getPropertyDataMetadata(propertyId) {
         // Check cache first
-        if (this.carDataCache[carId]) {
-            console.log('[FeaturesManager.getCarDataMetadata] ✅ CACHE HIT for car:', carId);
-            return this.carDataCache[carId];
+        if (this.dataCache[propertyId]) {
+            console.log('[FeaturesManager.getPropertyDataMetadata] ✅ CACHE HIT for property:', propertyId);
+            return this.dataCache[propertyId];
         }
 
         // Fetch from API
-        const data = await window.SupabaseApi?.getPropertyDataMetadataOnly?.(carId);
+        const data = await window.SupabaseApi?.getPropertyDataMetadataOnly?.(propertyId);
         if (data) {
             // Cache the result
-            this.carDataCache[carId] = data;
-            console.log('[FeaturesManager.getCarDataMetadata] 💾 CACHED car data for car:', carId);
+            this.dataCache[propertyId] = data;
+            console.log('[FeaturesManager.getPropertyDataMetadata] 💾 CACHED data for property:', propertyId);
         }
         return data;
     },

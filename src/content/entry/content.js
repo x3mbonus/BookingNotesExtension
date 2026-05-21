@@ -43,50 +43,50 @@ async function initializeContentScript() {
     }
 }
 
-async function addNoteButton(article, carId, dbNote = null) {
-    if (!article || !carId || !carId.trim()) {
+async function addNoteButton(article, propertyId, dbNote = null) {
+    if (!article || !propertyId || !propertyId.trim()) {
         return;
     }
 
     let note = dbNote;
-    if (note === null && !queriedPropertyIds.has(carId)) {
-        note = await getNote(carId);
+    if (note === null && !queriedPropertyIds.has(propertyId)) {
+        note = await getNote(propertyId);
     }
 
     const noteDisplay = document.createElement('div');
     noteDisplay.className = 'property-note-display';
-    noteDisplay.setAttribute('data-car-id', carId);
+    noteDisplay.setAttribute('data-property-id', propertyId);
 
     if (note) {
         const textColor = getTextColorForBackground(note.color);
         const starsHtml = sortToStarDisplay(note.sort);
 
         noteDisplay.innerHTML = `
-            <div class="car-note-content" style="background-color: ${note.color}; color: ${textColor};">
+            <div class="property-note-content" style="background-color: ${note.color}; color: ${textColor};">
                 <div>
                     ${starsHtml}
-                    <div class="car-note-text">${escapeHtml(note.text)}</div>
+                    <div class="property-note-text">${escapeHtml(note.text)}</div>
                 </div>
-                <button type="button" class="car-note-edit-btn" data-car-id="${carId}" title="Edit note">✏️</button>
+                <button type="button" class="property-note-edit-btn" data-property-id="${propertyId}" title="Edit note">✏️</button>
             </div>
         `;
     } else {
         noteDisplay.innerHTML = `
-            <button type="button" class="car-note-add-btn" data-car-id="${carId}" title="Add note">✏️</button>
+            <button type="button" class="property-note-add-btn" data-property-id="${propertyId}" title="Add note">✏️</button>
         `;
     }
 
     article.parentNode.insertBefore(noteDisplay, article.nextSibling);
 
-    const editBtn = noteDisplay.querySelector('.car-note-edit-btn');
-    const addBtn = noteDisplay.querySelector('.car-note-add-btn');
+    const editBtn = noteDisplay.querySelector('.property-note-edit-btn');
+    const addBtn = noteDisplay.querySelector('.property-note-add-btn');
 
     if (editBtn) {
         editBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            await showNoteModal(carId, note, article);
+            await showNoteModal(propertyId, note, article);
         });
     }
 
@@ -95,12 +95,12 @@ async function addNoteButton(article, carId, dbNote = null) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            await showNoteModal(carId, null, article);
+            await showNoteModal(propertyId, null, article);
         });
     }
 }
 
-async function addNoteButtonDetail(carId) {
+async function addNoteButtonDetail(propertyId) {
     // DISABLED: No longer needed on detail pages, unified panel handles all note editing
     console.log('ℹ️ Detail page note button disabled (using unified panel instead)');
     return;
@@ -133,7 +133,7 @@ function sortToStarDisplay(sort) {
     return '';
 }
 
-async function showNoteModal(carId, existingNote, article) {
+async function showNoteModal(propertyId, existingNote, article) {
     // Remove existing modal if any
     if (currentModal) {
         currentModal.remove();
@@ -141,22 +141,22 @@ async function showNoteModal(carId, existingNote, article) {
 
     // Use unified NotesEditor component
     const modalElement = await window.NotesEditor.create({
-        carId: carId,
+        propertyId: propertyId,
         existingNote: existingNote,
         article: article,
         displayMode: 'modal',
         onClose: async () => {
             currentModal = null;
 
-            const noteDisplay = document.querySelector(`[data-car-id="${carId}"].property-note-display`);
+            const noteDisplay = document.querySelector(`[data-property-id="${propertyId}"].property-note-display`);
             if (noteDisplay) {
                 noteDisplay.remove();
             }
 
             if (article) {
-                queriedPropertyIds.delete(carId);
-                const freshNote = await getNote(carId);
-                await addNoteButton(article, carId, freshNote);
+                queriedPropertyIds.delete(propertyId);
+                const freshNote = await getNote(propertyId);
+                await addNoteButton(article, propertyId, freshNote);
             }
 
             // Re-initialize to update any other note displays

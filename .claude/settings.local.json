@@ -3,7 +3,9 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"c:\\\\MyRepos\\\\BookingNotesExtension\" -Recurse -File)",
       "Bash(Select-Object FullName)",
-      "Bash(Sort-Object FullName)"
+      "Bash(Sort-Object FullName)",
+      "Bash(xargs -0 grep -i 'og:image')",
+      "Bash(xargs -0 grep -iE 'total|price-summary|nights')"
     ]
   }
 }

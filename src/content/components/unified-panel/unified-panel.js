@@ -1,7 +1,7 @@
-// Car Detail Panel - Combines notes + features + export in one panel
+// Property Panel - Combines notes + features + export in one panel
 
-window.CarDetailPanel = {
-    currentCarId: null,
+window.PropertyPanel = {
+    currentPropertyId: null,
     currentFeatures: null,
     isVerified: false,
     isUnavailable: false,
@@ -10,27 +10,33 @@ window.CarDetailPanel = {
     currentColor: '#e0e0e0',
     // Accommodation metadata fields
     currentName: '',
-    currentPricePerNight: '',
+    currentPriceBooking: '',
+    currentPriceAirbnb: '',
     currentLocation: '',
     currentSiteRating: '',
-    currentBedrooms: '',
-    currentBeds: '',
-    currentDistanceBeach: '',
-    currentDistanceAirport: '',
+    currentPropertyType: '',
+    currentBedroomsCount: '',
+    currentSleepingPlaces: '',
+    currentBathroomsCount: '',
+    currentToiletsCount: '',
+    currentToiletInside: '',
+    currentHeatingType: '',
+    currentLastReviewDate: '',
+    currentCancellationPolicy: '',
     panelElement: null,
     isExpanded: true,
     isInitializing: false,  // Prevent duplicate initialization
     noteSaveTimeout: null,  // Persistent timeout for note debouncing
 
     /**
-     * Show unified panel with all car data
+     * Show unified panel with all property data
      */
-    async showPanel(carId, data) {
-        console.log('[STAY-NOTES] showPanel called with carId:', carId);
+    async showPanel(propertyId, data) {
+        console.log('[STAY-NOTES] showPanel called with propertyId:', propertyId);
 
-        // Prevent duplicate initialization of same car
-        if (this.currentCarId === carId && this.panelElement) {
-            console.log('[STAY-NOTES] Panel already shown for this car, skipping duplicate initialization');
+        // Prevent duplicate initialization of same property
+        if (this.currentPropertyId === propertyId && this.panelElement) {
+            console.log('[STAY-NOTES] Panel already shown for this property, skipping duplicate initialization');
             // Make sure wrapper is visible
             if (this.wrapperElement) {
                 this.wrapperElement.style.display = '';
@@ -38,7 +44,7 @@ window.CarDetailPanel = {
             return;
         }
 
-        // Make sure wrapper is visible when showing a new car
+        // Make sure wrapper is visible when showing a new property
         if (this.wrapperElement) {
             this.wrapperElement.style.display = '';
         }
@@ -51,7 +57,7 @@ window.CarDetailPanel = {
 
         this.isInitializing = true;
 
-        this.currentCarId = carId;
+        this.currentPropertyId = propertyId;
 
         if (!this.panelElement) {
             this.createPanel();
@@ -62,7 +68,7 @@ window.CarDetailPanel = {
         console.log('[STAY-NOTES] FeaturesManager exists?', !!window.FeaturesManager);
         try {
             console.log('[STAY-NOTES] Calling initializeFeatures...');
-            const featureState = await window.FeaturesManager?.initializeFeatures?.(carId, data);
+            const featureState = await window.FeaturesManager?.initializeFeatures?.(propertyId, data);
             console.log('[STAY-NOTES] initializeFeatures returned:', featureState);
             this.currentFeatures = featureState?.features || {};
             console.log('[STAY-NOTES] currentFeatures set to:', this.currentFeatures);
@@ -73,7 +79,7 @@ window.CarDetailPanel = {
             if (!featureState?.isFromDb) {
                 console.log('[STAY-NOTES] Auto-saving features on first visit (source:', featureState?.featuresSource, ', count:', Object.keys(this.currentFeatures).length, ')');
                 console.log('[STAY-NOTES] Features to save:', this.currentFeatures);
-                await window.FeaturesManager?.confirmAllFeatures?.(carId, this.currentFeatures, this.currentSort, false);
+                await window.FeaturesManager?.confirmAllFeatures?.(propertyId, this.currentFeatures, this.currentSort, false);
                 console.log('[STAY-NOTES] Features auto-saved to DB');
             }
 
@@ -86,7 +92,7 @@ window.CarDetailPanel = {
         // Load note metadata (WITHOUT re-fetching features - we already have them from initializeFeatures)
         console.log('[STAY-NOTES] Calling getPropertyDataMetadata via FeaturesManager...');
         try {
-            const noteDataPromise = window.FeaturesManager?.getPropertyDataMetadata?.(carId);
+            const noteDataPromise = window.FeaturesManager?.getPropertyDataMetadata?.(propertyId);
             const timeoutPromise = new Promise((resolve) =>
                 setTimeout(() => resolve(null), 2000)
             );
@@ -97,13 +103,19 @@ window.CarDetailPanel = {
                 this.currentColor = noteData.color || '#e0e0e0';
                 this.isUnavailable = noteData.unavailable || false;
                 this.currentName = noteData.name || '';
-                this.currentPricePerNight = noteData.price_per_night || '';
+                this.currentPriceBooking = noteData.price_booking || '';
+                this.currentPriceAirbnb = noteData.price_airbnb || '';
                 this.currentLocation = noteData.location || '';
                 this.currentSiteRating = noteData.site_rating || '';
-                this.currentBedrooms = noteData.bedrooms || '';
-                this.currentBeds = noteData.beds || '';
-                this.currentDistanceBeach = noteData.distance_beach || '';
-                this.currentDistanceAirport = noteData.distance_airport || '';
+                this.currentPropertyType = noteData.property_type || '';
+                this.currentBedroomsCount = noteData.bedrooms_count || '';
+                this.currentSleepingPlaces = noteData.sleeping_places || '';
+                this.currentBathroomsCount = noteData.bathrooms_count || '';
+                this.currentToiletsCount = noteData.toilets_count || '';
+                this.currentToiletInside = noteData.toilet_inside || '';
+                this.currentHeatingType = noteData.heating_type || '';
+                this.currentLastReviewDate = noteData.last_review_date || '';
+                this.currentCancellationPolicy = noteData.cancellation_policy || '';
                 console.log('✅ Property metadata loaded');
             }
         } catch (error) {
@@ -122,7 +134,7 @@ window.CarDetailPanel = {
     createPanel() {
         // Container wrapper
         const wrapper = document.createElement('div');
-        wrapper.id = 'car-notes-unified-panel-wrapper';
+        wrapper.id = 'property-notes-panel-wrapper';
         wrapper.style.cssText = `
             position: fixed;
             top: 80px;
@@ -138,7 +150,7 @@ window.CarDetailPanel = {
 
         // Main panel
         const panel = document.createElement('div');
-        panel.id = 'car-notes-unified-panel';
+        panel.id = 'property-notes-panel';
         panel.style.cssText = `
             position: absolute;
             top: 0;
@@ -200,22 +212,28 @@ window.CarDetailPanel = {
             e.stopPropagation();
             console.log('[STAY-NOTES] Refreshing data from database...');
             try {
-                const carData = await window.SupabaseApi?.getPropertyData?.(this.currentCarId);
-                if (carData) {
-                    this.currentFeatures = carData.features || {};
-                    this.isVerified = carData.confirmed || false;
-                    this.isUnavailable = carData.unavailable || false;
-                    this.currentSort = carData.sort ?? null;
-                    this.currentNote = carData.text || '';
-                    this.currentColor = carData.color || '#e0e0e0';
-                    this.currentName = carData.name || '';
-                    this.currentPricePerNight = carData.price_per_night || '';
-                    this.currentLocation = carData.location || '';
-                    this.currentSiteRating = carData.site_rating || '';
-                    this.currentBedrooms = carData.bedrooms || '';
-                    this.currentBeds = carData.beds || '';
-                    this.currentDistanceBeach = carData.distance_beach || '';
-                    this.currentDistanceAirport = carData.distance_airport || '';
+                const propData = await window.SupabaseApi?.getPropertyData?.(this.currentPropertyId);
+                if (propData) {
+                    this.currentFeatures = propData.features || {};
+                    this.isVerified = propData.confirmed || false;
+                    this.isUnavailable = propData.unavailable || false;
+                    this.currentSort = propData.sort ?? null;
+                    this.currentNote = propData.text || '';
+                    this.currentColor = propData.color || '#e0e0e0';
+                    this.currentName = propData.name || '';
+                    this.currentPriceBooking = propData.price_booking || '';
+                    this.currentPriceAirbnb = propData.price_airbnb || '';
+                    this.currentLocation = propData.location || '';
+                    this.currentSiteRating = propData.site_rating || '';
+                    this.currentPropertyType = propData.property_type || '';
+                    this.currentBedroomsCount = propData.bedrooms_count || '';
+                    this.currentSleepingPlaces = propData.sleeping_places || '';
+                    this.currentBathroomsCount = propData.bathrooms_count || '';
+                    this.currentToiletsCount = propData.toilets_count || '';
+                    this.currentToiletInside = propData.toilet_inside || '';
+                    this.currentHeatingType = propData.heating_type || '';
+                    this.currentLastReviewDate = propData.last_review_date || '';
+                    this.currentCancellationPolicy = propData.cancellation_policy || '';
                     console.log('[STAY-NOTES] Data refreshed');
                     await this.updatePanelContent();
                 }
@@ -250,8 +268,8 @@ window.CarDetailPanel = {
             e.stopPropagation();
             console.log('[STAY-NOTES] Opening compare modal');
             try {
-                // Pass current car ID and sort for smart filtering
-                await window.ComparePanel?.showCompareModal?.(this.currentSort, this.currentCarId);
+                // Pass current property ID and sort for smart filtering
+                await window.ComparePanel?.showCompareModal?.(this.currentSort, this.currentPropertyId);
             } catch (error) {
                 console.error('[STAY-NOTES] Error opening compare modal:', error);
             }
@@ -326,10 +344,10 @@ window.CarDetailPanel = {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 12px;
+            padding: 8px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             min-height: 0;
         `;
 
@@ -371,7 +389,7 @@ window.CarDetailPanel = {
 
         try {
             // Get current page article data for reparse functionality
-            const pageData = window.extractCarData?.();
+            const pageData = window.extractPropertyData?.();
 
             // Prepare existing note object
             const existingNote = {
@@ -382,13 +400,19 @@ window.CarDetailPanel = {
                 unavailable: this.isUnavailable,
                 features: this.currentFeatures || {},
                 name: this.currentName,
-                price_per_night: this.currentPricePerNight,
+                price_booking: this.currentPriceBooking,
+                price_airbnb: this.currentPriceAirbnb,
                 location: this.currentLocation,
                 site_rating: this.currentSiteRating,
-                bedrooms: this.currentBedrooms,
-                beds: this.currentBeds,
-                distance_beach: this.currentDistanceBeach,
-                distance_airport: this.currentDistanceAirport
+                property_type: this.currentPropertyType,
+                bedrooms_count: this.currentBedroomsCount,
+                sleeping_places: this.currentSleepingPlaces,
+                bathrooms_count: this.currentBathroomsCount,
+                toilets_count: this.currentToiletsCount,
+                toilet_inside: this.currentToiletInside,
+                heating_type: this.currentHeatingType,
+                last_review_date: this.currentLastReviewDate,
+                cancellation_policy: this.currentCancellationPolicy
             };
 
             // Get editor content container
@@ -400,7 +424,7 @@ window.CarDetailPanel = {
 
             // Use unified NotesEditor component
             await window.NotesEditor.create({
-                carId: this.currentCarId,
+                propertyId: this.currentPropertyId,
                 existingNote: existingNote,
                 article: pageData || null,
                 displayMode: 'panel',
@@ -468,15 +492,15 @@ window.CarDetailPanel = {
 
             btn.onclick = async () => {
                 if (exp.action === 'json') {
-                    await window.copyCarDataToClipboard?.('json');
+                    await window.copyPropertyDataToClipboard?.('json');
                     this.showNotification('✅ Copied as JSON');
                 } else if (exp.action === 'text') {
-                    await window.copyCarDataToClipboard?.('text');
+                    await window.copyPropertyDataToClipboard?.('text');
                     this.showNotification('✅ Copied as Text');
                 } else if (exp.action === 'excel') {
                     this.exportAsExcel();
                 } else if (exp.action === 'download') {
-                    await window.downloadCarDataAsJson?.();
+                    await window.downloadPropertyDataAsJson?.();
                     this.showNotification('✅ Downloading...');
                 }
             };
@@ -494,15 +518,21 @@ window.CarDetailPanel = {
     exportAsExcel() {
         const rows = [
             ['Field', 'Value'],
-            ['Property ID', this.currentCarId || ''],
+            ['Property ID', this.currentPropertyId || ''],
             ['Name', this.currentName || ''],
-            ['Price/night', this.currentPricePerNight || ''],
+            ['Property Type', this.currentPropertyType || ''],
+            ['Price Booking/night', this.currentPriceBooking || ''],
+            ['Price Airbnb/night', this.currentPriceAirbnb || ''],
             ['Location', this.currentLocation || ''],
             ['Site Rating', this.currentSiteRating || ''],
-            ['Bedrooms', this.currentBedrooms || ''],
-            ['Beds', this.currentBeds || ''],
-            ['Distance Beach (km)', this.currentDistanceBeach || ''],
-            ['Distance Airport (km)', this.currentDistanceAirport || ''],
+            ['Bedrooms', this.currentBedroomsCount || ''],
+            ['Sleeping Places', this.currentSleepingPlaces || ''],
+            ['Bathrooms', this.currentBathroomsCount || ''],
+            ['Toilets', this.currentToiletsCount || ''],
+            ['Toilet Inside', this.currentToiletInside || ''],
+            ['Heating', this.currentHeatingType || ''],
+            ['Last Review', this.currentLastReviewDate || ''],
+            ['Cancellation', this.currentCancellationPolicy || ''],
             ['Note', this.currentNote || ''],
             ['Verified', this.isVerified ? 'Yes' : 'No'],
             ['Unavailable', this.isUnavailable ? 'Yes' : 'No'],
@@ -518,7 +548,7 @@ window.CarDetailPanel = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `property_${this.currentCarId}_data.tsv`;
+        a.download = `property_${this.currentPropertyId}_data.tsv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -557,14 +587,14 @@ window.CarDetailPanel = {
      * Clear panel data (called when note is deleted)
      */
     clearPanel() {
-        console.log('[STAY-NOTES] clearPanel called for carId:', this.currentCarId);
+        console.log('[STAY-NOTES] clearPanel called for propertyId:', this.currentPropertyId);
 
         // Set flag to prevent MutationObserver from reinitializing
         // This flag will prevent route() from calling showPanel() while we're clearing
         window._panelClearing = true;
 
         // Reset all data
-        this.currentCarId = null;
+        this.currentPropertyId = null;
         this.currentFeatures = null;
         this.isVerified = false;
         this.isUnavailable = false;
@@ -572,13 +602,19 @@ window.CarDetailPanel = {
         this.currentNote = '';
         this.currentColor = '#e0e0e0';
         this.currentName = '';
-        this.currentPricePerNight = '';
+        this.currentPriceBooking = '';
+        this.currentPriceAirbnb = '';
         this.currentLocation = '';
         this.currentSiteRating = '';
-        this.currentBedrooms = '';
-        this.currentBeds = '';
-        this.currentDistanceBeach = '';
-        this.currentDistanceAirport = '';
+        this.currentPropertyType = '';
+        this.currentBedroomsCount = '';
+        this.currentSleepingPlaces = '';
+        this.currentBathroomsCount = '';
+        this.currentToiletsCount = '';
+        this.currentToiletInside = '';
+        this.currentHeatingType = '';
+        this.currentLastReviewDate = '';
+        this.currentCancellationPolicy = '';
 
         // Hide panel instead of clearing content - avoids triggering MutationObserver
         const wrapper = this.wrapperElement;

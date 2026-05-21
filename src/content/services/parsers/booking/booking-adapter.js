@@ -115,8 +115,8 @@ window.BookingAdapter = {
 
     async handleDetailPage(pathname) {
         const propertyId = this.extractDetailId(pathname);
-        if (propertyId && window.CarDetailPanel) {
-            window.CarDetailPanel.showPanel(propertyId);
+        if (propertyId && window.PropertyPanel) {
+            window.PropertyPanel.showPanel(propertyId);
         }
     }
 };

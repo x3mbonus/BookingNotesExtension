@@ -1,4 +1,4 @@
-// Vehicle Data Extraction UI - Shows overlay with export/copy options on detail pages
+// Property Data Extraction UI - Shows overlay with export/copy options on detail pages
 
 window.ExtractionUI = {
     /**
@@ -6,7 +6,7 @@ window.ExtractionUI = {
      */
     showExtractionPanel() {
         // Check if panel already exists
-        if (document.getElementById('car-notes-extractor-panel')) {
+        if (document.getElementById('property-notes-extractor-panel')) {
             return;
         }
 
@@ -16,7 +16,7 @@ window.ExtractionUI = {
         }
 
         const panel = document.createElement('div');
-        panel.id = 'car-notes-extractor-panel';
+        panel.id = 'property-notes-extractor-panel';
         panel.style.cssText = `
             position: fixed;
             bottom: 20px;
@@ -33,7 +33,7 @@ window.ExtractionUI = {
 
         const title = document.createElement('div');
         title.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #333; font-size: 12px;';
-        title.textContent = 'Extract Vehicle Data';
+        title.textContent = 'Extract Property Data';
         panel.appendChild(title);
 
         const buttonContainer = document.createElement('div');
@@ -56,7 +56,7 @@ window.ExtractionUI = {
         copyJsonBtn.onmouseover = () => copyJsonBtn.style.background = '#5568d3';
         copyJsonBtn.onmouseout = () => copyJsonBtn.style.background = '#667eea';
         copyJsonBtn.onclick = async () => {
-            const result = await window.copyCarDataToClipboard?.('json');
+            const result = await window.copyPropertyDataToClipboard?.('json');
             if (result?.success) {
                 copyJsonBtn.textContent = '✅ Copied!';
                 setTimeout(() => copyJsonBtn.textContent = '📋 Copy JSON', 2000);
@@ -81,7 +81,7 @@ window.ExtractionUI = {
         copyTextBtn.onmouseover = () => copyTextBtn.style.background = '#65408a;';
         copyTextBtn.onmouseout = () => copyTextBtn.style.background = '#764ba2';
         copyTextBtn.onclick = async () => {
-            const result = await window.copyCarDataToClipboard?.('text');
+            const result = await window.copyPropertyDataToClipboard?.('text');
             if (result?.success) {
                 copyTextBtn.textContent = '✅ Copied!';
                 setTimeout(() => copyTextBtn.textContent = '📝 Copy Text', 2000);
@@ -105,7 +105,7 @@ window.ExtractionUI = {
         `;
         downloadJsonBtn.onmouseover = () => downloadJsonBtn.style.background = '#45a049';
         downloadJsonBtn.onmouseout = () => downloadJsonBtn.style.background = '#4caf50';
-        downloadJsonBtn.onclick = () => window.downloadCarData?.('json');
+        downloadJsonBtn.onclick = () => window.downloadPropertyData?.('json');
         buttonContainer.appendChild(downloadJsonBtn);
 
         // Download Text button
@@ -124,7 +124,7 @@ window.ExtractionUI = {
         `;
         downloadTextBtn.onmouseover = () => downloadTextBtn.style.background = '#e68900';
         downloadTextBtn.onmouseout = () => downloadTextBtn.style.background = '#ff9800';
-        downloadTextBtn.onclick = () => window.downloadCarData?.('text');
+        downloadTextBtn.onclick = () => window.downloadPropertyData?.('text');
         buttonContainer.appendChild(downloadTextBtn);
 
         panel.appendChild(buttonContainer);
@@ -175,5 +175,5 @@ window.ExtractionUI = {
 };
 
 // ℹ️ DISABLED: Unified panel is now shown directly by site adapters (mobile-de.js, otomoto.js)
-// This was causing duplicate panel calls with undefined carId
+// This was causing duplicate panel calls with undefined propertyId
 // The panel is initialized via router.handleDetailPage() instead

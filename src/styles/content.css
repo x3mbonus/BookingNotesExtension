@@ -2,16 +2,16 @@
 
 .ui-section-label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     text-transform: uppercase;
 }
 
 .ui-color-btn {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     border: 2px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
@@ -31,8 +31,8 @@
 
 .ui-note-textarea {
     width: 100%;
-    height: 150px;
-    padding: 12px;
+    height: 90px;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-family: inherit;
@@ -173,9 +173,9 @@
 .ui-metadata-section {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-    margin-bottom: 8px;
-    padding: 4px;
+    gap: 3px;
+    margin-bottom: 4px;
+    padding: 3px;
     background: #fafafa;
     border-radius: 4px;
     border: 1px solid #e8e8e8;
@@ -225,9 +225,9 @@
     color: #333;
 }
 
-/* Car Notes Display Styles */
+/* Property Notes Display Styles */
 
-.car-note-display {
+.property-note-display {
     margin: 12px 0;
     padding-bottom: 12px;
     border-bottom: 2px solid #e0e0e0;
@@ -235,13 +235,13 @@
 }
 
 /* Hide border and padding when content has no background */
-.car-note-display:has(.no-background) {
+.property-note-display:has(.no-background) {
     border-bottom: none;
     padding-bottom: 0;
 }
 
 /* Detail page note display - fixed positioning */
-.car-note-display-detail {
+.property-note-display-detail {
     position: fixed;
     top: 100px;
     right: 20px;
@@ -249,7 +249,7 @@
     max-width: 300px;
 }
 
-.car-note-content {
+.property-note-content {
     padding: 12px;
     border-radius: 4px;
     display: flex;
@@ -261,34 +261,34 @@
 }
 
 /* Hide background when text is empty */
-.car-note-content:has(.car-note-text:empty) {
+.property-note-content:has(.property-note-text:empty) {
     background-color: transparent !important;
     box-shadow: none;
     padding: 0;
     display: inline-flex;
 }
 
-.car-note-content:has(.car-note-text:empty) .car-note-text {
+.property-note-content:has(.property-note-text:empty) .property-note-text {
     display: none;
 }
 
 /* Hide background when no rating and no text */
-.car-note-content.no-background {
+.property-note-content.no-background {
     background-color: transparent !important;
     box-shadow: none;
     padding: 0;
     display: inline-flex;
 }
 
-.car-note-content.no-background .car-note-text {
+.property-note-content.no-background .property-note-text {
     display: none;
 }
 
-.car-note-content.empty-text .car-note-text {
+.property-note-content.empty-text .property-note-text {
     display: none;
 }
 
-.car-note-text {
+.property-note-text {
     flex: 1;
     font-size: 13px;
     line-height: 1.4;
@@ -298,7 +298,7 @@
     overflow-y: auto;
 }
 
-.car-note-edit-btn {
+.property-note-edit-btn {
     background: none;
     border: none;
     font-size: 18px;
@@ -310,13 +310,13 @@
     opacity: 0.7;
 }
 
-.car-note-edit-btn:hover {
+.property-note-edit-btn:hover {
     opacity: 1;
     background: rgba(0, 0, 0, 0.1);
     transform: scale(1.1);
 }
 
-.car-note-add-btn {
+.property-note-add-btn {
     background: rgba(255, 255, 255, 0.3);
     border: 2px dashed rgba(0, 0, 0, 0.3);
     font-size: 20px;
@@ -330,7 +330,7 @@
     justify-content: center;
 }
 
-.car-note-add-btn:hover {
+.property-note-add-btn:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.5);
     border-color: rgba(0, 0, 0, 0.5);
@@ -339,7 +339,7 @@
 
 /* Modal Styles */
 
-.car-note-modal-backdrop {
+.property-note-modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
@@ -350,7 +350,7 @@
     animation: fadeIn 0.2s ease;
 }
 
-.car-note-modal {
+.property-note-modal {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -366,7 +366,7 @@
     animation: slideUp 0.3s ease;
 }
 
-.car-note-modal-header {
+.property-note-modal-header {
     padding: 16px;
     border-bottom: 1px solid #eee;
     display: flex;
@@ -375,13 +375,13 @@
     background: #f9f9f9;
 }
 
-.car-note-modal-header h3 {
+.property-note-modal-header h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
 }
 
-.car-note-modal-close {
+.property-note-modal-close {
     background: none;
     border: none;
     font-size: 24px;
@@ -396,17 +396,17 @@
     transition: all 0.2s;
 }
 
-.car-note-modal-close:hover {
+.property-note-modal-close:hover {
     background: rgba(0, 0, 0, 0.1);
 }
 
-.car-note-modal-content {
+.property-note-modal-content {
     padding: 16px;
     max-height: calc(80vh - 140px);
     overflow-y: auto;
 }
 
-.car-note-modal-textarea {
+.property-note-modal-textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid #ddd;
@@ -418,17 +418,17 @@
     box-sizing: border-box;
 }
 
-.car-note-modal-textarea:focus {
+.property-note-modal-textarea:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.car-note-modal-colors {
+.property-note-modal-colors {
     margin-bottom: 16px;
 }
 
-.car-note-modal-colors label {
+.property-note-modal-colors label {
     display: block;
     font-size: 13px;
     font-weight: 600;
@@ -436,13 +436,13 @@
     color: #555;
 }
 
-.car-note-color-grid {
+.property-note-color-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
     gap: 8px;
 }
 
-.car-note-color-btn {
+.property-note-color-btn {
     width: 40px;
     height: 40px;
     border: 2px solid #ddd;
@@ -452,17 +452,17 @@
     padding: 0;
 }
 
-.car-note-color-btn:hover {
+.property-note-color-btn:hover {
     border-color: #333;
     transform: scale(1.1);
 }
 
-.car-note-color-btn.selected {
+.property-note-color-btn.selected {
     border-color: #333;
     box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
 }
 
-.car-note-modal-actions {
+.property-note-modal-actions {
     padding: 16px;
     border-top: 1px solid #eee;
     display: flex;
@@ -472,7 +472,7 @@
     background: #f9f9f9;
 }
 
-.car-note-modal-delete-btn {
+.property-note-modal-delete-btn {
     background: #F44336;
     color: white;
     border: none;
@@ -495,21 +495,21 @@
     padding: 2px;
 }
 
-.car-note-modal-delete-btn.visible {
+.property-note-modal-delete-btn.visible {
     visibility: visible;
     opacity: 0.5;
     max-height: 28px;
     padding: 2px;
 }
 
-.car-note-modal-delete-btn:hover {
+.property-note-modal-delete-btn:hover {
     background: #d32f2f;
     opacity: 1;
     transform: scale(1.15);
 }
 
-.car-note-modal-cancel-btn,
-.car-note-modal-save-btn {
+.property-note-modal-cancel-btn,
+.property-note-modal-save-btn {
     padding: 8px 16px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -520,25 +520,25 @@
     background: white;
 }
 
-.car-note-modal-cancel-btn:hover {
+.property-note-modal-cancel-btn:hover {
     background: #f5f5f5;
 }
 
-.car-note-modal-save-btn {
+.property-note-modal-save-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-color: #667eea;
 }
 
-.car-note-modal-save-btn:hover {
+.property-note-modal-save-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 /* Modal Sections */
 .modal-section {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
     border-bottom: 1px solid #eee;
 }
 
