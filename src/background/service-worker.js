@@ -5,6 +5,9 @@
  */
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Only accept messages from this extension's own scripts
+    if (sender.id !== chrome.runtime.id) return;
+
     if (message.type === 'FETCH_OG_IMAGE') {
         fetchOgImage(message.url).then(sendResponse);
         return true; // keep message channel open for async response
